@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.node-config.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["node"],
+    "noEmit": true,
+    "allowJs": false,
+    "checkJs": false
+  },
+  "include": ["src/**/*.ts", "tauri.lifecycle.config.ts"],
+  "exclude": ["**/*.test.ts"]
+}

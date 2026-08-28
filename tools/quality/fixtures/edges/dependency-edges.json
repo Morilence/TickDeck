@@ -1,0 +1,38 @@
+[
+  {
+    "from": "apps/server",
+    "to": "packages/contracts",
+    "surface": "production",
+    "expected": "runtime"
+  },
+  {
+    "from": "packages/connectors-official",
+    "to": "packages/testkit",
+    "surface": "build",
+    "expected": "build/codegen"
+  },
+  {
+    "from": "apps/server",
+    "to": "packages/testkit",
+    "surface": "test",
+    "expected": "test/dev"
+  },
+  {
+    "from": "apps/web",
+    "to": "packages/testkit",
+    "surface": "test",
+    "expected": "denied"
+  },
+  {
+    "from": "packages/core",
+    "to": "apps/server",
+    "surface": "production",
+    "expected": "denied"
+  },
+  {
+    "from": "tools/component-compiler",
+    "to": "wit/tickdeck-sandbox",
+    "surface": "build",
+    "expected": "build/codegen"
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.node.json",
+  "compilerOptions": { "rootDir": "src", "outDir": "dist", "types": ["node"] },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"],
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/contracts" },
+    { "path": "../../packages/policies" },
+    { "path": "../../packages/connectors-core" },
+    { "path": "../../packages/connectors-official" },
+    { "path": "../../packages/models" },
+    { "path": "../../packages/notifications" },
+    { "path": "../../packages/agent-mastra" }
+  ]
+}

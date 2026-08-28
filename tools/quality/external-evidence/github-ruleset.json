@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0.0",
+  "queriedAt": "2026-08-28T18:43:39+08:00",
+  "repository": "Morilence/TickDeck",
+  "visibility": "public",
+  "query": "GET /repos/Morilence/TickDeck/rulesets/21725853",
+  "domainSeparatorEncoding": "UTF-8 tickdeck:github-ruleset-evidence:v1 followed by 0x00",
+  "rulesetResponseDigest": "sha256:f5487c16e9b5b3d79046bd57924e1238e0a957b5df7d1070511893da5bacf450",
+  "ruleset": {
+    "id": 21725853,
+    "name": "Story 1.1 required quality contexts",
+    "target": "branch",
+    "source_type": "Repository",
+    "source": "Morilence/TickDeck",
+    "enforcement": "active",
+    "conditions": {
+      "ref_name": {
+        "exclude": [],
+        "include": ["~DEFAULT_BRANCH"]
+      }
+    },
+    "rules": [
+      {
+        "type": "required_status_checks",
+        "parameters": {
+          "strict_required_status_checks_policy": true,
+          "do_not_enforce_on_create": true,
+          "required_status_checks": [
+            { "context": "lint" },
+            { "context": "format-check" },
+            { "context": "typecheck" },
+            { "context": "build" },
+            { "context": "test" }
+          ]
+        }
+      }
+    ],
+    "node_id": "RRS_lACqUmVwb3NpdG9yec5QWvdNzgFLgp0",
+    "created_at": "2026-08-28T18:43:01.363+08:00",
+    "updated_at": "2026-08-28T18:43:01.388+08:00",
+    "bypass_actors": [],
+    "current_user_can_bypass": "never",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/Morilence/TickDeck/rulesets/21725853"
+      },
+      "html": {
+        "href": "https://github.com/Morilence/TickDeck/rules/21725853"
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.node-config.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    "allowJs": false,
+    "checkJs": false,
+    "noEmit": true
+  },
+  "include": ["vite.config.ts", "vitest.component.config.ts", ".storybook/**/*.ts"]
+}

@@ -1,6 +1,19 @@
 # Local browser automation artifacts
 .playwright-cli/
 
+# Dependency, build, cache, generated, and test outputs
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+**/target/
+**/.vite/
+**/storybook-static/
+**/playwright-report/
+**/test-results/
+**/generated/
+*.tsbuildinfo
+
 # Python bytecode caches
 **/__pycache__/
 *.py[cod]

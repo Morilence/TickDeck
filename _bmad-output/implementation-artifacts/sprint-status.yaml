@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 08-28-2026 13:51
-last_updated: 08-28-2026 16:45
+last_updated: 08-28-2026 17:30
 project: TickDeck
 project_key: NOKEY
 tracking_system: file-system
@@ -238,8 +238,8 @@ planning_contract:
     - demo、fixture、mock、编译成功、接口存在、模型自评或部分证据不能替代真实 Gate。
     - Stop、Narrow、blocked、过期、漂移或缺失证据向后传播，并阻止后续能力注册。
 development_status:
-  epic-1: backlog
-  1-1-建立锁定的-s0-v-项目骨架与阶段壳: backlog
+  epic-1: in-progress
+  1-1-建立锁定的-s0-v-项目骨架与阶段壳: review
   1-2-冻结并校验-s0-v-实验合同: backlog
   1-3-准入冻结的真实数据快照: backlog
   1-4-执行规范化只读筛选与-oracle-校验: backlog

@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@reference '../../apps/web/src/index.css';
+
+@config './tailwind.config.js';
+
+@plugin '@tailwindcss/typography';
+
+@source '../../apps/web/src';
+
+@custom-variant dark (&:is(.dark *));
+
+@variant dark {
+  color: var(--foreground);
+}
+
+@utility tabular-nums-safe {
+  font-variant-numeric: tabular-nums;
+}
+
+@theme inline {
+  --color-surface: oklch(0.985 0.001 247.839);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: #171717;
+}
+
+.fixture {
+  @apply bg-background text-foreground;
+}

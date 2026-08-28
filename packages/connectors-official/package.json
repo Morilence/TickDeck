@@ -1,0 +1,26 @@
+{
+  "name": "@tickdeck/connectors-official",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.typecheck.json && tsc -p tsconfig.test.json --noEmit",
+    "build": "tsc -b tsconfig.json --force",
+    "test:unit": "vitest run --root ../.. --config vitest.config.ts packages/connectors-official/src",
+    "codegen:check": "node ../../tools/quality/no-codegen.mjs packages/connectors-official"
+  },
+  "dependencies": {
+    "@tickdeck/connectors-core": "workspace:0.0.0"
+  },
+  "devDependencies": {
+    "@tickdeck/testkit": "workspace:0.0.0"
+  }
+}

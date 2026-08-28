@@ -1,0 +1,15 @@
+**/node_modules/**
+**/dist/**
+**/build/**
+**/coverage/**
+**/target/**
+**/.vite/**
+**/storybook-static/**
+**/playwright-report/**
+**/test-results/**
+**/generated/**
+_bmad/**
+_bmad-output/**
+.agents/**
+.playwright-cli/**
+pnpm-lock.yaml

@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.neutral.json",
+  "compilerOptions": { "rootDir": "src", "outDir": "dist", "types": [] },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

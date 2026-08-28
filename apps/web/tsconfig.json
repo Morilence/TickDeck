@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.web.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "types": ["vite/client"],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.stories.tsx"],
+  "references": [{ "path": "../../packages/contracts" }]
+}

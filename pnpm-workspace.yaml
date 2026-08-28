@@ -1,0 +1,14 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'tools/*'
+
+includeWorkspaceRoot: false
+strictDepBuilds: true
+dangerouslyAllowAllBuilds: false
+nodeOptions: '--max-old-space-size=4096'
+minimumReleaseAgeExclude:
+  - '@testing-library/react@16.3.3'
+
+allowBuilds:
+  esbuild: true

@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.node.json",
+  "compilerOptions": { "rootDir": "src", "outDir": "dist", "types": ["node"] },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"],
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/contracts" },
+    { "path": "../../packages/policies" },
+    { "path": "../../packages/storage-sqlite" },
+    { "path": "../../packages/artifact-fs" }
+  ]
+}

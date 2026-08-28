@@ -1,0 +1,12 @@
+{
+  "name": "@tickdeck/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "build": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --root ../.. --config vitest.config.ts apps/desktop",
+    "codegen:check": "node ../../tools/quality/no-codegen.mjs apps/desktop"
+  }
+}

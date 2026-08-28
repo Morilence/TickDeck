@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "commandSha256": "sha256:a28e0f9d5758d7af037bb58eb6b82f005e327f1ddf85d38b866f2682df6a38d3",
+  "presetSha256": "sha256:5d7ab4ec0af5bf803fe05b727d04b8ff3710f6b8e200ee82e1af8ab897efde31",
+  "generatedSources": {
+    "apps/web/components.json": "sha256:5f75fe4658d41600293feebe2cfe78dd187087288210e66b9454ebe18740d23c",
+    "apps/web/src/components/ui/button.tsx": "sha256:a41aa6fa8fa1f98f5dfcd3c883c967cb8c232c2ce57a2b731a45587ac9dd9b7f",
+    "apps/web/src/index.css": "sha256:73a0c954e055b1ac6e3507f23a5b80fc46357c8f5884f076daf9a92563d90ff8",
+    "apps/web/src/lib/utils.ts": "sha256:c0e7542d6e6d73fd7901bbc621618f46e4d8b14b0bf25c7f06e6d22f28991aaf"
+  },
+  "originalStarterSources": {
+    "components.json": "sha256:063a33aa3433ae590bf7a62688b775805d409b0d76bf04342f6f64a01e01a440",
+    "src/components/ui/button.tsx": "sha256:dde128eed676b269f6762596a682eac304b9e05e9387d466a18bc05645cd3dad",
+    "src/index.css": "sha256:7b6e0ad2af4e51389abb9d08a8963ce080278831f533590f2dd5bab0ca22e5a5",
+    "src/lib/utils.ts": "sha256:7177257ac558417dec520c3056d4883d2e6de4f37068ef5a41acf43fa6591396"
+  }
+}

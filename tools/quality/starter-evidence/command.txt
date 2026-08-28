@@ -1,0 +1,3 @@
+pnpm dlx shadcn@4.19.0 create --preset "https://ui.shadcn.com/init?base=base&style=vega&baseColor=neutral&theme=neutral&iconLibrary=lucide&font=inter&menuAccent=subtle&menuColor=default&radius=default&template=vite" --template vite
+
+Prompt response: project name = tickdeck-web
