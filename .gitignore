@@ -1,0 +1,6 @@
+# Local browser automation artifacts
+.playwright-cli/
+
+# Python bytecode caches
+**/__pycache__/
+*.py[cod]

@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TickDeck · 浅色专注分析画布</title>
+  <style>
+    /*
+      关键色值：
+      canvas #FCFCFB | shell #F6F6F3 | panel #F1F2EE | ink #191A17
+      muted #6D7068 | line #E2E3DD | accent #B8512F | accent-soft #F7E8E1
+      stale #A26019 | stale-soft #FFF4DC | partial #6B5B95 | partial-soft #F0ECF8
+    */
+    :root {
+      color-scheme: light;
+      --canvas: #fcfcfb;
+      --shell: #f6f6f3;
+      --panel: #f1f2ee;
+      --ink: #191a17;
+      --muted: #6d7068;
+      --quiet: #90938a;
+      --line: #e2e3dd;
+      --line-strong: #d3d5cd;
+      --accent: #b8512f;
+      --accent-soft: #f7e8e1;
+      --positive: #34705a;
+      --positive-soft: #e8f2ed;
+      --negative: #a54845;
+      --stale: #a26019;
+      --stale-soft: #fff4dc;
+      --partial: #6b5b95;
+      --partial-soft: #f0ecf8;
+      --radius: 10px;
+      --shadow: 0 24px 70px rgba(33, 35, 30, 0.12), 0 3px 12px rgba(33, 35, 30, 0.06);
+      font-family: Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 1472px;
+      background: #e9e9e5;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button { font: inherit; }
+
+    .page {
+      width: 1440px;
+      margin: 0 auto;
+      padding: 30px 0 44px;
+    }
+
+    .direction-note {
+      display: grid;
+      grid-template-columns: 172px 1fr;
+      gap: 30px;
+      align-items: start;
+      min-height: 96px;
+      padding: 0 6px 24px;
+    }
+
+    .eyebrow {
+      margin: 4px 0 0;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .rationale {
+      max-width: 930px;
+      margin: 0;
+      color: #565951;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .rationale strong { color: var(--ink); font-weight: 650; }
+
+    .browser {
+      width: 1440px;
+      height: 900px;
+      overflow: hidden;
+      background: var(--canvas);
+      border: 1px solid #d5d6d0;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .browser-bar {
+      height: 46px;
+      display: grid;
+      grid-template-columns: 124px 1fr 124px;
+      align-items: center;
+      padding: 0 16px;
+      background: #eeeeeb;
+      border-bottom: 1px solid #dedfd9;
+    }
+
+    .window-dots { display: flex; gap: 8px; }
+    .window-dots span { width: 10px; height: 10px; border-radius: 50%; background: #c5c7bf; }
+    .window-dots span:first-child { background: #d88d78; }
+    .window-dots span:nth-child(2) { background: #d9bb73; }
+    .window-dots span:nth-child(3) { background: #88b39a; }
+
+    .address {
+      justify-self: center;
+      width: 520px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      color: #7f817a;
+      background: #f8f8f6;
+      border: 1px solid #dedfd9;
+      border-radius: 7px;
+      font-size: 11px;
+    }
+
+    .browser-actions { justify-self: end; display: flex; gap: 10px; color: #8a8d85; }
+
+    .app {
+      height: 854px;
+      display: grid;
+      grid-template-columns: 216px minmax(0, 1fr) 330px;
+      background: var(--canvas);
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .rail {
+      display: flex;
+      flex-direction: column;
+      padding: 24px 14px 17px;
+      background: var(--shell);
+      border-right: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 36px;
+      margin: 0 8px 28px;
+      font-weight: 720;
+      letter-spacing: -.02em;
+    }
+
+    .brand-mark {
+      width: 25px;
+      height: 25px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      color: white;
+      background: var(--ink);
+    }
+
+    .brand-mark .icon { width: 14px; height: 14px; }
+    .brand small { display: block; margin-top: 1px; color: var(--quiet); font-size: 9px; font-weight: 600; letter-spacing: .08em; }
+
+    .nav-section { margin-bottom: 19px; }
+
+    .nav-label {
+      margin: 0 10px 7px;
+      color: #9b9e95;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .12em;
+    }
+
+    .nav-item {
+      height: 37px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 2px 0;
+      padding: 0 11px;
+      color: #62655e;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 560;
+    }
+
+    .nav-item.active {
+      color: var(--ink);
+      background: #e9eae5;
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .nav-item .count {
+      min-width: 20px;
+      margin-left: auto;
+      padding: 2px 6px;
+      color: #74776f;
+      background: #dedfd9;
+      border-radius: 999px;
+      font-size: 9px;
+      text-align: center;
+    }
+
+    .rail-bottom {
+      margin-top: auto;
+      padding-top: 15px;
+      border-top: 1px solid var(--line);
+    }
+
+    .health {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 10px 0;
+      color: #73766e;
+      font-size: 10px;
+    }
+
+    .health-dot { width: 7px; height: 7px; border-radius: 50%; background: #cf8b34; box-shadow: 0 0 0 3px #f4e8d5; }
+
+    .workspace {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--canvas);
+    }
+
+    .workspace-head {
+      height: 92px;
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+    }
+
+    .security {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 7px;
+      color: #7b7e76;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .security .icon { width: 12px; height: 12px; }
+
+    .instrument { display: flex; align-items: baseline; gap: 10px; }
+
+    .instrument h1 {
+      margin: 0;
+      font-size: 25px;
+      font-weight: 690;
+      line-height: 1.12;
+      letter-spacing: -.035em;
+    }
+
+    .ticker { color: #8b8e85; font-size: 13px; font-weight: 560; }
+
+    .quote {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-left: 24px;
+    }
+
+    .quote strong { font-size: 21px; font-variant-numeric: tabular-nums; }
+    .quote span { color: var(--negative); font-size: 11px; font-weight: 650; }
+
+    .head-tools { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+    .segmented {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      background: #efefec;
+      border-radius: 8px;
+    }
+
+    .segmented span { padding: 6px 9px; color: #7b7e76; border-radius: 6px; font-size: 10px; }
+    .segmented .selected { color: var(--ink); background: white; box-shadow: 0 1px 3px rgba(30,32,28,.08); font-weight: 650; }
+
+    .icon-button {
+      width: 31px;
+      height: 31px;
+      display: grid;
+      place-items: center;
+      color: #666961;
+      background: transparent;
+      border: 0;
+      border-radius: 7px;
+    }
+
+    .trust-strip {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 32px;
+      background: #f7f7f4;
+      border-top: 1px solid #eeeeea;
+      border-bottom: 1px solid var(--line);
+      color: #666960;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .trust-strip .icon { width: 13px; height: 13px; color: #6b6e66; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+
+    .status-pill.stale { color: #8d5518; background: var(--stale-soft); }
+    .status-pill.partial { color: var(--partial); background: var(--partial-soft); }
+    .status-pill .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+    .trust-spacer { flex: 1; }
+    .trust-detail { color: #8b8e85; }
+
+    .canvas {
+      min-height: 0;
+      flex: 1;
+      display: grid;
+      grid-template-rows: 494px 1fr;
+      padding: 27px 32px 0;
+    }
+
+    .chart-area { min-width: 0; }
+
+    .chart-heading {
+      display: flex;
+      align-items: flex-end;
+      height: 44px;
+      margin-bottom: 7px;
+    }
+
+    .chart-heading h2 { margin: 0; font-size: 13px; font-weight: 650; }
+
+    .chart-heading p { margin: 5px 0 0; color: #92958c; font-size: 9px; }
+
+    .legend { margin-left: auto; display: flex; gap: 12px; color: #8a8d84; font-size: 9px; }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .legend i { width: 12px; height: 2px; display: inline-block; background: var(--accent); }
+    .legend span:nth-child(2) i { background: #7f8e9a; }
+
+    .chart {
+      position: relative;
+      width: 100%;
+      height: 428px;
+    }
+
+    .chart svg { width: 100%; height: 100%; overflow: visible; }
+
+    .chart-callout {
+      position: absolute;
+      top: 13px;
+      right: 38px;
+      width: 176px;
+      padding: 10px 12px;
+      color: #6d4a1c;
+      background: rgba(255, 244, 220, .94);
+      border-radius: 8px;
+      font-size: 9px;
+      line-height: 1.55;
+    }
+
+    .chart-callout strong { display: block; margin-bottom: 2px; color: #805119; font-size: 10px; }
+
+    .observations {
+      display: grid;
+      grid-template-columns: 1.13fr .85fr .85fr;
+      gap: 0;
+      min-height: 0;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+    }
+
+    .observation {
+      min-width: 0;
+      padding: 0 25px;
+      border-left: 1px solid var(--line);
+    }
+
+    .observation:first-child { padding-left: 0; border-left: 0; }
+
+    .observation h3 { margin: 0 0 12px; color: #7e8179; font-size: 9px; font-weight: 700; letter-spacing: .09em; }
+
+    .observation strong { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 650; }
+    .observation p { margin: 0; color: #777a72; font-size: 10px; line-height: 1.6; }
+
+    .metric-line { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; }
+    .metric-line strong { margin: 0; font-size: 18px; font-variant-numeric: tabular-nums; }
+    .metric-line span { color: #8a8d84; font-size: 9px; }
+
+    .agent {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: #f5f5f2;
+      border-left: 1px solid var(--line);
+    }
+
+    .agent-head {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .agent-title { display: flex; align-items: center; gap: 9px; }
+    .agent-title .spark { color: var(--accent); }
+    .agent-title strong { display: block; font-size: 13px; }
+    .agent-title small { display: block; margin-top: 3px; color: #85887f; font-size: 9px; }
+
+    .run-badge { margin-left: auto; padding: 5px 8px; color: #6c6f67; background: #e6e7e1; border-radius: 999px; font-size: 9px; font-weight: 650; }
+
+    .agent-scroll {
+      min-height: 0;
+      flex: 1;
+      overflow: hidden;
+      padding: 19px 18px 17px;
+    }
+
+    .section-kicker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0 3px 9px;
+      color: #888b82;
+      font-size: 9px;
+      font-weight: 750;
+      letter-spacing: .08em;
+    }
+
+    .section-kicker .icon { width: 12px; height: 12px; }
+
+    .context {
+      padding: 13px 14px;
+      background: #e9ebe5;
+      border-radius: var(--radius);
+    }
+
+    .context-title { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 11px; font-weight: 650; }
+    .context-title .icon { width: 13px; height: 13px; color: #6d7068; }
+
+    .context-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .context-tags span { padding: 5px 7px; color: #5f625a; background: rgba(255,255,255,.66); border-radius: 6px; font-size: 9px; }
+    .context-tags .warn { color: var(--partial); background: #f3f0f8; }
+    .context-note { margin: 10px 0 0; color: #85887f; font-size: 8px; line-height: 1.5; }
+
+    .timeline-wrap { margin-top: 18px; }
+
+    .timeline { position: relative; margin: 0; padding: 1px 0 1px 19px; list-style: none; }
+    .timeline::before { content: ""; position: absolute; top: 7px; bottom: 10px; left: 5px; width: 1px; background: #d5d7cf; }
+
+    .timeline li { position: relative; min-height: 38px; padding-bottom: 10px; color: #767970; font-size: 9px; line-height: 1.45; }
+    .timeline li::before { content: ""; position: absolute; top: 3px; left: -18px; width: 7px; height: 7px; border: 2px solid #f5f5f2; border-radius: 50%; background: #8da092; box-shadow: 0 0 0 1px #c8cbc3; }
+    .timeline li.pending::before { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .timeline strong { display: block; color: #4d5049; font-size: 10px; font-weight: 620; }
+    .timeline time { color: #a0a39a; font-variant-numeric: tabular-nums; }
+
+    .risk-card {
+      margin-top: 5px;
+      padding: 15px;
+      background: var(--accent-soft);
+      border-radius: var(--radius);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .risk-head { display: flex; align-items: flex-start; gap: 9px; }
+    .risk-icon { width: 27px; height: 27px; display: grid; place-items: center; color: var(--accent); background: rgba(255,255,255,.65); border-radius: 7px; }
+    .risk-icon .icon { width: 14px; height: 14px; }
+    .risk-head strong { display: block; font-size: 11px; }
+    .risk-head span { display: block; margin-top: 3px; color: #95614e; font-size: 8px; }
+    .r2 { margin-left: auto; padding: 3px 6px; color: white; background: var(--accent); border-radius: 5px; font-size: 8px; font-weight: 800; }
+
+    .risk-action { margin: 12px 0 10px; color: #4f342b; font-size: 10px; font-weight: 650; line-height: 1.5; }
+
+    .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-bottom: 12px; }
+    .risk-grid dt { margin: 0 0 2px; color: #a47766; font-size: 7px; font-weight: 700; letter-spacing: .06em; }
+    .risk-grid dd { margin: 0; color: #63463b; font-size: 8px; line-height: 1.35; }
+
+    .risk-buttons { display: grid; grid-template-columns: .8fr 1.2fr; gap: 7px; }
+    .risk-buttons button { height: 29px; border: 0; border-radius: 7px; font-size: 9px; font-weight: 650; }
+    .risk-buttons .reject { color: #765348; background: rgba(255,255,255,.58); }
+    .risk-buttons .approve { color: white; background: var(--accent); }
+
+    .agent-foot {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 43px;
+      padding: 0 21px;
+      color: #92958c;
+      border-top: 1px solid var(--line);
+      font-size: 8px;
+    }
+
+    .agent-foot .icon { width: 12px; height: 12px; }
+    .agent-foot span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="direction-note" aria-labelledby="direction-title">
+      <p class="eyebrow" id="direction-title">Direction · Calm Canvas</p>
+      <p class="rationale"><strong>浅色专注分析画布</strong>用大标题、宽留白和少量柔和色块取代常驻卡片网格，让日 K 图成为绝对视觉中心。左侧任务域导航保持安静，次要观察收束在图表下方而不消失。右侧 Agent 仅作为当前研究的伴随面板，冻结上下文与 R2 待确认状态用局部色块获得必要注意力。</p>
+    </section>
+
+    <section class="browser" aria-label="1440 像素桌面浏览器中的 TickDeck 分析工作台">
+      <header class="browser-bar">
+        <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="address">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="15" height="11" x="4.5" y="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+          tickdeck.local / workspace
+        </div>
+        <div class="browser-actions" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="m7 8 5-5 5 5"></path><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"></path></svg>
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+        </div>
+      </header>
+
+      <div class="app">
+        <aside class="rail" aria-label="按任务域组织的导航">
+          <div class="brand">
+            <span class="brand-mark">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9"></path><path d="M8 15V5"></path><path d="M12 20V11"></path><path d="M16 13V4"></path><path d="M20 18V8"></path></svg>
+            </span>
+            <span>TickDeck<small>TRUSTED WORKSPACE</small></span>
+          </div>
+
+          <nav>
+            <section class="nav-section" aria-labelledby="nav-research">
+              <h2 class="nav-label" id="nav-research">研究</h2>
+              <div class="nav-item active">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m7 16 4-5 4 3 5-7"></path></svg>
+                工作台
+              </div>
+              <div class="nav-item">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M7 12h10"></path><path d="M10 18h4"></path></svg>
+                筛选
+              </div>
+              <div class="nav-item">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"></path><path d="M10 9h4"></path><path d="M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"></path></svg>
+                策略实验室
+              </div>
+              <div class="nav-item">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg>
+                提醒 <span class="count">3</span>
+              </div>
+              <div class="nav-item">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18"></path><path d="M7 15h.01"></path><path d="M11 15h2"></path><rect width="18" height="14" x="3" y="5" rx="2"></rect></svg>
+                模拟组合
+              </div>
+            </section>
+
+            <section class="nav-section" aria-labelledby="nav-system">
+              <h2 class="nav-label" id="nav-system">系统</h2>
+              <div class="nav-item">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7-7.1l-1.1 1"></path><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7 7.1l1.1-1"></path></svg>
+                连接与模型
+              </div>
+              <div class="nav-item">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-7 4 14 2-7h6"></path></svg>
+                运行与健康
+              </div>
+              <div class="nav-item">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v6"></path><path d="M12 16v6"></path><path d="M4.93 4.93l4.24 4.24"></path><path d="m14.83 14.83 4.24 4.24"></path><path d="M2 12h6"></path><path d="M16 12h6"></path><path d="m4.93 19.07 4.24-4.24"></path><path d="m14.83 9.17 4.24-4.24"></path></svg>
+                扩展
+              </div>
+            </section>
+          </nav>
+
+          <div class="rail-bottom">
+            <div class="nav-item">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.13.38.35.72.64 1 .3.3.68.47 1.1.5H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"></path></svg>
+              工作区设置
+            </div>
+            <div class="health"><span class="health-dot"></span>连接受限 · 1 项数据降级</div>
+          </div>
+        </aside>
+
+        <section class="workspace" aria-label="浦发银行 600000 日 K 工作台">
+          <header class="workspace-head">
+            <div>
+              <div class="security">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                当前工作区 · 只读研究上下文
+              </div>
+              <div class="instrument">
+                <h1>浦发银行</h1><span class="ticker">600000 · SSE</span>
+                <div class="quote"><strong>10.42</strong><span>−0.48%</span></div>
+              </div>
+            </div>
+            <div class="head-tools">
+              <div class="segmented" aria-label="K 线周期"><span>分时</span><span class="selected">日 K</span><span>周 K</span><span>月 K</span></div>
+              <button class="icon-button" aria-label="更多视图选项">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+              </button>
+            </div>
+          </header>
+
+          <div class="trust-strip" aria-label="数据信任状态">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"></path><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"></path></svg>
+            <span>来源：主数据连接器</span>
+            <span>数据截至 2026-08-25 15:00 CST</span>
+            <span class="status-pill stale"><span class="dot"></span>陈旧 · 2 个交易日</span>
+            <span class="status-pill partial"><span class="dot"></span>部分 · 北向资金缺失</span>
+            <span class="trust-spacer"></span>
+            <span class="trust-detail">前复权 · CNY · Asia/Shanghai ›</span>
+          </div>
+
+          <div class="canvas">
+            <section class="chart-area" aria-labelledby="chart-title">
+              <div class="chart-heading">
+                <div>
+                  <h2 id="chart-title">60 交易日价格与均线</h2>
+                  <p>2026-06-01 — 2026-08-25 · 前复权</p>
+                </div>
+                <div class="legend" aria-label="图例"><span><i></i>MA20&nbsp; 10.36</span><span><i></i>MA60&nbsp; 10.18</span></div>
+              </div>
+              <div class="chart">
+                <svg viewBox="0 0 820 428" role="img" aria-label="浦发银行日 K 线与两条均线示意图">
+                  <g stroke="#edeee9" stroke-width="1">
+                    <path d="M4 38H778"></path><path d="M4 117H778"></path><path d="M4 196H778"></path><path d="M4 275H778"></path><path d="M4 354H778"></path>
+                  </g>
+                  <g fill="#92958d" font-family="Inter, PingFang SC, sans-serif" font-size="9">
+                    <text x="784" y="41">11.20</text><text x="784" y="120">10.80</text><text x="784" y="199">10.40</text><text x="784" y="278">10.00</text><text x="784" y="357">9.60</text>
+                    <text x="6" y="403">06/01</text><text x="190" y="403">06/23</text><text x="377" y="403">07/15</text><text x="564" y="403">08/04</text><text x="742" y="403">08/25</text>
+                  </g>
+                  <path d="M8 315 C65 286 96 302 137 270 S211 238 252 251 S333 276 373 229 S445 193 486 210 S560 250 602 189 S676 129 724 156 S760 175 777 158" fill="none" stroke="#7f8e9a" stroke-width="2" opacity=".72"></path>
+                  <path d="M8 298 C53 282 96 275 138 260 S211 247 251 246 S329 258 372 235 S445 212 485 211 S559 223 602 199 S676 161 724 163 S760 167 777 161" fill="none" stroke="#b8512f" stroke-width="2.5"></path>
+                  <g stroke-width="1.35">
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M24 298V337"></path><rect x="19" y="309" width="10" height="16"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M49 278V324"></path><rect x="44" y="291" width="10" height="23"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M74 268V306"></path><rect x="69" y="279" width="10" height="15"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M99 255V296"></path><rect x="94" y="264" width="10" height="20"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M124 251V288"></path><rect x="119" y="263" width="10" height="16"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M149 235V279"></path><rect x="144" y="247" width="10" height="23"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M174 219V268"></path><rect x="169" y="231" width="10" height="24"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M199 225V276"></path><rect x="194" y="241" width="10" height="22"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M224 239V291"></path><rect x="219" y="250" width="10" height="28"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M249 236V276"></path><rect x="244" y="247" width="10" height="18"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M274 247V292"></path><rect x="269" y="257" width="10" height="23"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M299 255V305"></path><rect x="294" y="270" width="10" height="21"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M324 241V287"></path><rect x="319" y="252" width="10" height="24"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M349 219V263"></path><rect x="344" y="232" width="10" height="20"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M374 192V243"></path><rect x="369" y="207" width="10" height="24"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M399 198V244"></path><rect x="394" y="208" width="10" height="24"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M424 181V224"></path><rect x="419" y="192" width="10" height="20"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M449 170V212"></path><rect x="444" y="182" width="10" height="18"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M474 180V228"></path><rect x="469" y="191" width="10" height="25"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M499 198V245"></path><rect x="494" y="210" width="10" height="23"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M524 218V263"></path><rect x="519" y="230" width="10" height="20"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M549 207V253"></path><rect x="544" y="219" width="10" height="22"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M574 183V231"></path><rect x="569" y="197" width="10" height="22"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M599 158V207"></path><rect x="594" y="171" width="10" height="25"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M624 130V181"></path><rect x="619" y="144" width="10" height="25"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M649 123V177"></path><rect x="644" y="138" width="10" height="26"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M674 107V156"></path><rect x="669" y="120" width="10" height="24"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M699 118V171"></path><rect x="694" y="131" width="10" height="27"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M724 139V187"></path><rect x="719" y="152" width="10" height="22"></rect></g>
+                    <g stroke="#a54845" fill="#a54845"><path d="M749 142V181"></path><rect x="744" y="153" width="10" height="17"></rect></g>
+                    <g stroke="#34705a" fill="#fcfcfb"><path d="M774 146V190"></path><rect x="769" y="157" width="10" height="21"></rect></g>
+                  </g>
+                  <path d="M4 160H778" stroke="#b8512f" stroke-width="1" stroke-dasharray="3 4" opacity=".45"></path>
+                  <g transform="translate(744 149)"><rect width="36" height="20" rx="5" fill="#b8512f"></rect><text x="18" y="13.5" text-anchor="middle" fill="white" font-family="Inter, sans-serif" font-size="9">10.42</text></g>
+                  <g opacity=".75">
+                    <path d="M8 383V371M22 383V365M36 383V374M50 383V358M64 383V368M78 383V363M92 383V354M106 383V366M120 383V359M134 383V370M148 383V356M162 383V350M176 383V360M190 383V367M204 383V354M218 383V361M232 383V371M246 383V358M260 383V367M274 383V356M288 383V366M302 383V359M316 383V349M330 383V362M344 383V352M358 383V345M372 383V355M386 383V350M400 383V360M414 383V343M428 383V352M442 383V347M456 383V356M470 383V350M484 383V362M498 383V355M512 383V365M526 383V352M540 383V359M554 383V348M568 383V341M582 383V354M596 383V346M610 383V336M624 383V348M638 383V343M652 383V353M666 383V339M680 383V347M694 383V355M708 383V349M722 383V358M736 383V351M750 383V361M764 383V354" stroke="#c9cbc4" stroke-width="7"></path>
+                  </g>
+                </svg>
+                <div class="chart-callout"><strong>数据完整性提醒</strong>8 月 26–27 日行情尚未同步；图中最后一根 K 线为 8 月 25 日，不代表当前市场。</div>
+              </div>
+            </section>
+
+            <section class="observations" aria-label="次要观察">
+              <article class="observation">
+                <h3>关键观察</h3>
+                <strong>价格仍站在 MA20 之上</strong>
+                <p>短周期趋势未破坏，但近两个交易日缺失，结论仅适用于已加载区间。</p>
+              </article>
+              <article class="observation">
+                <h3>20 日区间</h3>
+                <div class="metric-line"><strong>9.94–10.88</strong><span>CNY</span></div>
+                <p>振幅 9.46% · 不含未同步行情</p>
+              </article>
+              <article class="observation">
+                <h3>成交活跃度</h3>
+                <div class="metric-line"><strong>0.82×</strong><span>20 日均量</span></div>
+                <p>数据状态：完整 · 延时更新</p>
+              </article>
+            </section>
+          </div>
+        </section>
+
+        <aside class="agent" aria-label="伴随式 Agent 面板">
+          <header class="agent-head">
+            <div class="agent-title">
+              <svg class="icon spark" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3-1.9 5.1L5 10l5.1 1.9L12 17l1.9-5.1L19 10l-5.1-1.9L12 3Z"></path><path d="M5 3v4"></path><path d="M3 5h4"></path><path d="M19 17v4"></path><path d="M17 19h4"></path></svg>
+              <span><strong>伴随式 Agent</strong><small>研究运行 #A-2048</small></span>
+            </div>
+            <span class="run-badge">已暂停</span>
+          </header>
+
+          <div class="agent-scroll">
+            <p class="section-kicker">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="15" height="11" x="4.5" y="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+              运行上下文
+            </p>
+            <section class="context" aria-label="已冻结的上下文">
+              <div class="context-title">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v6"></path><path d="m8 6 4 4 4-4"></path><path d="M5 13h14"></path><path d="M7 13v7h10v-7"></path></svg>
+                已冻结 · 14:32:11
+              </div>
+              <div class="context-tags">
+                <span>600000 · 日 K</span><span>60 交易日</span><span>前复权</span><span>MA20 / MA60</span><span class="warn">部分数据</span>
+              </div>
+              <p class="context-note">页面切换不会改变本次输入；如需更换标的或数据区间，需显式重新绑定。</p>
+            </section>
+
+            <section class="timeline-wrap" aria-labelledby="timeline-title">
+              <p class="section-kicker" id="timeline-title">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                运行时间线
+              </p>
+              <ol class="timeline">
+                <li><strong>上下文快照已固定</strong><time>14:32:11</time> · 5 项输入</li>
+                <li><strong>本地指标计算完成</strong><time>14:32:14</time> · MA20 / MA60 / 振幅</li>
+                <li><strong>数据质量降级已记录</strong><time>14:32:16</time> · 缺失 2 交易日</li>
+                <li class="pending"><strong>运行已暂停，等待 R2 确认</strong><time>14:32:19</time> · 不会自动继续</li>
+              </ol>
+            </section>
+
+            <section class="risk-card" aria-label="R2 待确认动作">
+              <div class="risk-head">
+                <span class="risk-icon">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.7 2.4 17.4A2 2 0 0 0 4.1 20h15.8a2 2 0 0 0 1.7-2.6L13.7 3.7a2 2 0 0 0-3.4 0Z"></path></svg>
+                </span>
+                <span><strong>需要你确认</strong><span>高影响动作不会自动执行</span></span>
+                <span class="r2">R2</span>
+              </div>
+              <p class="risk-action">将浦发银行在“红利观察”模拟组合中的目标权重由 6% 调整至 8%。</p>
+              <dl class="risk-grid">
+                <div><dt>对象</dt><dd>600000 浦发银行</dd></div>
+                <div><dt>参数</dt><dd>6% → 8%</dd></div>
+                <div><dt>组合影响</dt><dd>目标权重 +2%</dd></div>
+                <div><dt>估算成本</dt><dd>¥0.00（模拟）</dd></div>
+                <div><dt>出站范围</dt><dd>无外部出站</dd></div>
+                <div><dt>有效期 / 撤回</dt><dd>本次 · 执行前可取消</dd></div>
+              </dl>
+              <div class="risk-buttons">
+                <button class="reject" type="button">取消运行</button>
+                <button class="approve" type="button">确认并继续</button>
+              </div>
+            </section>
+          </div>
+
+          <footer class="agent-foot">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"></path></svg>
+            本次运行已留痕
+            <span>已用时 00:08</span>
+          </footer>
+        </aside>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

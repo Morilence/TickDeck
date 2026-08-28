@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TickDeck · 策略实验室与回测审阅</title>
+  <style>
+    /*
+      TickDeck DESIGN.md dark semantic tokens
+      canvas #0B0C0E | surface #121417 | raised #191C20 | sunken #08090B
+      border #30343A | border-strong #59606A | text #F2F4F7 | muted #858D98
+      accent #6EA8FE | success #4CC9D8 | warning #F2B84B | danger #FF9559
+      demo #B7AECF | partial #FFC15A | radius 10px
+    */
+    :root {
+      color-scheme: dark;
+      --canvas: #0b0c0e;
+      --surface: #121417;
+      --raised: #191c20;
+      --sunken: #08090b;
+      --border: #30343a;
+      --border-strong: #59606a;
+      --text: #f2f4f7;
+      --text-2: #b1b7c0;
+      --muted: #858d98;
+      --quiet: #626a74;
+      --accent: #6ea8fe;
+      --accent-soft: #162a4d;
+      --focus: #91baff;
+      --success: #4cc9d8;
+      --success-soft: rgba(76, 201, 216, .12);
+      --warning: #f2b84b;
+      --warning-soft: rgba(242, 184, 75, .12);
+      --danger: #ff9559;
+      --danger-soft: rgba(255, 149, 89, .12);
+      --info: #aab8ff;
+      --demo: #b7aecf;
+      --partial: #ffc15a;
+      --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      --sans: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      --radius: 10px;
+      font-family: var(--sans);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 1600px;
+      height: 1000px;
+      margin: 0;
+      overflow: hidden;
+      background: var(--canvas);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button { font: inherit; }
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+    .icon {
+      width: 15px;
+      height: 15px;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .screen {
+      width: 1600px;
+      height: 1000px;
+      display: grid;
+      grid-template-rows: 50px minmax(0, 1fr);
+      background:
+        radial-gradient(circle at 66% 0%, rgba(110,168,254,.045), transparent 32%),
+        var(--canvas);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      padding: 0 15px;
+      background: #0d0f12;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      width: 185px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 720;
+      letter-spacing: -.02em;
+    }
+
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      color: #07111f;
+      background: var(--accent);
+      border-radius: 7px;
+    }
+
+    .brand-mark .icon { width: 14px; height: 14px; stroke-width: 2.2; }
+
+    .crumbs { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+    .crumbs strong { color: #d9dde2; font-weight: 640; }
+    .crumb-sep { color: #4d545d; }
+
+    .stage {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 14px;
+      padding: 5px 8px;
+      color: #aecbff;
+      background: var(--accent-soft);
+      border: 1px solid rgba(110,168,254,.25);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 730;
+    }
+
+    .top-spacer { flex: 1; }
+
+    .top-meta { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+    .theme-chip, .workspace-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      background: #15181c;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .app {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 56px 240px 884px 420px;
+    }
+
+    .rail {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 6px;
+      background: var(--sunken);
+      border-right: 1px solid var(--border);
+    }
+
+    .rail-item {
+      width: 44px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      color: #676f79;
+      border-radius: 7px;
+    }
+
+    .rail-item.active { color: var(--accent); background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+    .rail-item .icon { width: 17px; height: 17px; }
+    .rail-rule { width: 30px; height: 1px; margin: 4px 0; background: var(--border); }
+    .rail-bottom { margin-top: auto; }
+
+    .drawer {
+      min-width: 0;
+      min-height: 0;
+      background: #0f1114;
+      border-right: 1px solid var(--border);
+    }
+
+    .drawer-head {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .drawer-head strong { display: block; font-size: 12px; }
+    .drawer-head small { display: block; margin-top: 3px; color: var(--quiet); font-size: 12px; }
+    .drawer-head .icon { margin-left: auto; color: var(--muted); }
+
+    .drawer-section { padding: 13px 9px 4px; }
+    .drawer-label { margin: 0 7px 8px; color: #68717b; font-size: 12px; font-weight: 740; letter-spacing: .1em; }
+
+    .tree-item {
+      min-height: 35px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      color: #929aa4;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .tree-item.active { color: #dae0e6; background: #181c21; }
+    .tree-item .icon { width: 13px; height: 13px; }
+    .tree-item .suffix { margin-left: auto; color: #5e6670; font-family: var(--mono); font-size: 12px; }
+    .tree-item .dirty { width: 5px; height: 5px; margin-left: auto; background: var(--accent); border-radius: 50%; }
+
+    .version-list { margin: 5px 8px 0 21px; padding-left: 10px; border-left: 1px solid var(--border); }
+    .version { display: flex; align-items: center; min-height: 29px; color: #737c86; font-family: var(--mono); font-size: 12px; }
+    .version.current { color: #aecbff; }
+    .version span { margin-left: auto; color: #535b64; }
+
+    .run-item {
+      min-height: 52px;
+      margin: 4px 0;
+      padding: 9px 8px;
+      background: transparent;
+      border-radius: 7px;
+    }
+
+    .run-item.active { background: #161a1f; box-shadow: inset 2px 0 0 var(--accent); }
+    .run-top { display: flex; align-items: center; color: #b9bfc7; font-family: var(--mono); font-size: 12px; }
+    .run-top time { margin-left: auto; color: #5f6872; }
+    .run-item p { margin: 6px 0 0; color: #727b85; font-size: 12px; line-height: 1.4; }
+
+    .drawer-note {
+      margin: 14px 9px 0;
+      padding: 10px;
+      color: #9a8eb1;
+      background: rgba(183,174,207,.08);
+      border: 1px solid rgba(183,174,207,.18);
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .workspace {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 70px 38px 366px 40px minmax(0, 1fr);
+      background: var(--canvas);
+      border-right: 1px solid var(--border);
+    }
+
+    .workspace-head {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      background: #101215;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .workspace-title { min-width: 0; }
+    .workspace-title small { display: block; margin-bottom: 5px; color: #68717b; font-family: var(--mono); font-size: 12px; }
+    .workspace-title h1 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.018em; }
+
+    .head-status { margin-left: 15px; display: flex; gap: 6px; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 690;
+    }
+
+    .status-pill.success { color: #8ae0e9; background: var(--success-soft); border-color: rgba(76,201,216,.2); }
+    .status-pill.warn { color: #ffd27b; background: var(--warning-soft); border-color: rgba(242,184,75,.2); }
+    .status-pill.demo { color: #c9c0dd; background: rgba(183,174,207,.1); border-color: rgba(183,174,207,.2); }
+    .status-pill .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+    .head-actions { margin-left: auto; display: flex; align-items: center; gap: 7px; }
+    .button {
+      height: 29px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 10px;
+      color: #aeb5bd;
+      background: #171a1e;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .button.primary { color: #071426; background: var(--accent); border-color: var(--accent); font-weight: 700; }
+
+    .trust-strip {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      padding: 0 13px;
+      background: #14161a;
+      border-bottom: 1px solid var(--border);
+      color: #9ba3ad;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .trust-strip .icon { width: 12px; height: 12px; color: var(--demo); }
+    .trust-strip strong { color: #c8cdd3; font-weight: 620; }
+    .trust-spacer { flex: 1; }
+    .trust-warning { color: var(--partial); }
+
+    .editor-row {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 584px 300px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .editor {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: 36px minmax(0, 1fr) 28px;
+      background: #0c0e11;
+      border-right: 1px solid var(--border);
+    }
+
+    .editor-tabs { display: flex; align-items: center; padding: 0 10px; background: #121519; border-bottom: 1px solid var(--border); }
+    .file-tab { height: 35px; display: flex; align-items: center; gap: 6px; padding: 0 10px; color: #838c96; border-right: 1px solid var(--border); font-family: var(--mono); font-size: 12px; }
+    .file-tab.active { color: #d5d9de; background: #0c0e11; box-shadow: inset 0 2px 0 var(--accent); }
+    .file-tab .icon { width: 11px; height: 11px; }
+
+    .code {
+      overflow: hidden;
+      padding: 10px 0;
+      background:
+        linear-gradient(90deg, #101318 0, #101318 44px, transparent 44px),
+        #0c0e11;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 13.2px;
+    }
+
+    .code-line { display: grid; grid-template-columns: 37px 1fr; min-height: 13px; padding-right: 11px; }
+    .code-line.focus { background: rgba(110,168,254,.08); box-shadow: inset 2px 0 0 var(--accent); }
+    .ln { color: #4f5862; text-align: right; padding-right: 10px; user-select: none; }
+    .src { color: #c5cad0; white-space: pre; }
+    .kw { color: #c2a7ff; }
+    .fn { color: #8bbdff; }
+    .str { color: #a9cf8b; }
+    .num { color: #edbd7c; }
+    .type { color: #80d4d7; }
+    .comment { color: #69727c; }
+    .warn-underline { text-decoration: underline wavy var(--warning); text-underline-offset: 2px; }
+
+    .editor-status { display: flex; align-items: center; gap: 10px; padding: 0 10px; color: #6f7882; background: #121519; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 12px; }
+    .editor-status .ok { color: var(--success); }
+    .editor-status .warning { color: var(--warning); }
+    .editor-status span:last-child { margin-left: auto; }
+
+    .contract {
+      min-width: 0;
+      background: #101317;
+    }
+
+    .contract-head { height: 36px; display: flex; align-items: center; padding: 0 11px; color: #c7ccd2; background: #14171b; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 650; }
+    .contract-head span { margin-left: auto; color: var(--accent); font-family: var(--mono); font-size: 12px; }
+
+    .contract-grid { display: grid; grid-template-columns: 1fr 1fr; }
+    .contract-item { min-height: 55px; padding: 8px 10px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .contract-item:nth-child(2n) { border-right: 0; }
+    .contract-item dt { margin: 0 0 4px; color: #66707b; font-size: 12px; font-weight: 720; letter-spacing: .07em; }
+    .contract-item dd { margin: 0; color: #afb6be; font-size: 12px; line-height: 1.4; }
+    .contract-item dd.mono { font-size: 12px; }
+
+    .contract-foot { padding: 8px 10px; color: #7e8791; font-size: 12px; line-height: 1.45; }
+    .contract-foot strong { color: var(--warning); }
+
+    .review-tabs {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      padding: 0 11px;
+      background: #111316;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .review-tab { height: 39px; display: flex; align-items: center; padding: 0 11px; color: #737c86; border-bottom: 2px solid transparent; font-size: 12px; }
+    .review-tab.active { color: #dce0e5; border-bottom-color: var(--accent); }
+    .review-tab .tab-badge { margin-left: 5px; padding: 2px 4px; color: var(--warning); background: var(--warning-soft); border-radius: 4px; font-family: var(--mono); font-size: 12px; }
+
+    .review-canvas {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 78px minmax(0, 1fr);
+      background: #0d0f12;
+    }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border); }
+    .summary-item { min-width: 0; padding: 11px 9px; border-right: 1px solid var(--border); }
+    .summary-item:last-child { border-right: 0; }
+    .summary-label { color: #6f7882; font-size: 12px; font-weight: 720; letter-spacing: .06em; }
+    .summary-value { display: block; margin-top: 6px; color: #e0e3e7; font-family: var(--mono); font-size: 13px; }
+    .summary-value.negative { color: var(--danger); }
+    .summary-note { display: block; margin-top: 4px; color: #606a74; font-size: 12px; }
+
+    .review-detail { min-height: 0; display: grid; grid-template-columns: 58% 42%; }
+
+    .equity-panel { min-width: 0; padding: 13px 14px 8px; border-right: 1px solid var(--border); }
+    .chart-head { display: flex; align-items: center; }
+    .chart-head h2 { margin: 0; font-size: 12px; font-weight: 640; }
+    .chart-legend { margin-left: auto; display: flex; gap: 11px; color: #7f8892; font-size: 12px; }
+    .chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .chart-legend i { width: 13px; height: 2px; display: inline-block; background: var(--accent); }
+    .chart-legend span:nth-child(2) i { background: #7d858f; }
+
+    .chart { height: 196px; margin-top: 7px; }
+    .chart svg { width: 100%; height: 100%; }
+    .chart-note { display: flex; align-items: center; gap: 6px; margin-top: 7px; color: #7b858f; font-size: 12px; }
+    .chart-note .icon { width: 11px; height: 11px; color: var(--warning); }
+
+    .validation-panel { min-width: 0; display: grid; grid-template-rows: 142px minmax(0, 1fr); }
+    .sample-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .sample-table caption { height: 34px; padding: 11px 11px 0; color: #bfc5cc; font-size: 12px; font-weight: 650; text-align: left; }
+    .sample-table th { height: 25px; padding: 0 7px; color: #65707a; border-bottom: 1px solid var(--border); font-size: 12px; text-align: left; }
+    .sample-table td { height: 36px; padding: 6px 7px; color: #aeb5bd; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 12px; }
+    .sample-table .weak { color: var(--warning); }
+
+    .sensitivity { min-height: 0; padding: 10px 11px; }
+    .sensitivity-head { display: flex; align-items: center; color: #bfc5cc; font-size: 12px; font-weight: 650; }
+    .sensitivity-head span { margin-left: auto; color: var(--warning); font-size: 12px; font-weight: 600; }
+    .sensitivity-bars { display: grid; gap: 8px; margin-top: 12px; }
+    .sensitivity-row { display: grid; grid-template-columns: 70px 1fr 44px; align-items: center; gap: 7px; color: #7f8993; font-family: var(--mono); font-size: 12px; }
+    .bar { height: 7px; position: relative; overflow: hidden; background: #20242a; border-radius: 2px; }
+    .bar > span { position: absolute; top: 0; bottom: 0; left: 50%; background: var(--accent); }
+    .bar > span.loss { right: 50%; left: auto; background: var(--danger); }
+    .sensitivity-note { margin: 11px 0 0; color: #7b848e; font-size: 12px; line-height: 1.45; }
+
+    .run-panel {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 62px 120px 158px 250px 310px 50px;
+      background: #0e1013;
+    }
+
+    .run-head { display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid var(--border); }
+    .run-head-icon { width: 27px; height: 27px; display: grid; place-items: center; margin-right: 9px; color: var(--accent); background: var(--accent-soft); border-radius: 7px; }
+    .run-head strong { display: block; font-size: 12px; }
+    .run-head small { display: block; margin-top: 3px; color: #626b75; font-family: var(--mono); font-size: 12px; }
+    .run-state { margin-left: auto; padding: 4px 7px; color: var(--success); background: var(--success-soft); border: 1px solid rgba(76,201,216,.2); border-radius: 6px; font-family: var(--mono); font-size: 12px; font-weight: 720; }
+
+    .progress-panel { padding: 12px 15px; border-bottom: 1px solid var(--border); }
+    .progress-top { display: flex; align-items: center; color: #aeb5bd; font-size: 12px; }
+    .progress-top strong { color: #dce0e5; }
+    .progress-top span { margin-left: auto; color: var(--success); font-family: var(--mono); }
+    .progress-track { height: 5px; margin-top: 9px; overflow: hidden; background: #24282e; border-radius: 999px; }
+    .progress-track span { display: block; width: 100%; height: 100%; background: var(--success); }
+    .budget-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 11px; }
+    .budget { padding: 7px; background: #15181c; border: 1px solid #282d34; border-radius: 6px; }
+    .budget dt { margin: 0 0 4px; color: #646e78; font-size: 12px; font-weight: 720; letter-spacing: .06em; }
+    .budget dd { margin: 0; color: #aeb6be; font-family: var(--mono); font-size: 12px; }
+
+    .diagnostics { border-bottom: 1px solid var(--border); }
+    .side-title { height: 35px; display: flex; align-items: center; gap: 6px; padding: 0 14px; color: #bfc5cc; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 700; letter-spacing: .05em; }
+    .side-title .icon { width: 11px; height: 11px; }
+    .side-title span { margin-left: auto; color: #626b75; font-family: var(--mono); font-size: 12px; }
+
+    .diag-row { min-height: 40px; display: grid; grid-template-columns: 19px 1fr auto; align-items: center; gap: 7px; padding: 6px 14px; border-bottom: 1px solid rgba(48,52,58,.72); }
+    .diag-row:last-child { border-bottom: 0; }
+    .diag-mark { width: 17px; height: 17px; display: grid; place-items: center; border-radius: 5px; }
+    .diag-mark.ok { color: var(--success); background: var(--success-soft); }
+    .diag-mark.warn { color: var(--warning); background: var(--warning-soft); }
+    .diag-mark.unknown { color: var(--demo); background: rgba(183,174,207,.1); }
+    .diag-mark .icon { width: 10px; height: 10px; }
+    .diag-row strong { display: block; color: #bfc5cc; font-size: 12px; font-weight: 620; }
+    .diag-row p { margin: 3px 0 0; color: #717a84; font-size: 12px; }
+    .diag-value { color: #75808a; font-family: var(--mono); font-size: 12px; text-align: right; }
+
+    .bias-panel { border-bottom: 1px solid var(--border); overflow: hidden; }
+    .bias-list { padding: 6px 12px 8px; }
+    .bias-row { min-height: 29px; display: grid; grid-template-columns: 20px 120px 1fr 62px; align-items: center; gap: 6px; border-bottom: 1px solid rgba(48,52,58,.55); color: #9da5ae; font-size: 12px; }
+    .bias-row:last-child { border-bottom: 0; }
+    .bias-icon { width: 15px; height: 15px; display: grid; place-items: center; border-radius: 50%; }
+    .bias-icon.ok { color: var(--success); background: var(--success-soft); }
+    .bias-icon.warn { color: var(--warning); background: var(--warning-soft); }
+    .bias-row .icon { width: 9px; height: 9px; }
+    .bias-name { color: #bdc3ca; font-weight: 610; }
+    .bias-detail { color: #69737d; }
+    .bias-status { justify-self: end; font-family: var(--mono); font-size: 12px; }
+    .bias-status.pass { color: var(--success); }
+    .bias-status.warn { color: var(--warning); }
+
+    .manifest { overflow: hidden; }
+    .manifest-grid { display: grid; grid-template-columns: 1fr 1fr; }
+    .manifest-item { min-width: 0; min-height: 49px; padding: 8px 10px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .manifest-item:nth-child(2n) { border-right: 0; }
+    .manifest-item dt { margin: 0 0 5px; color: #626c76; font-size: 12px; font-weight: 720; letter-spacing: .07em; }
+    .manifest-item dd { margin: 0; overflow: hidden; color: #a3abb4; font-family: var(--mono); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .repro-box { margin: 10px 12px; padding: 10px; color: #8f98a2; background: rgba(110,168,254,.06); border: 1px solid rgba(110,168,254,.17); border-radius: 7px; font-size: 12px; line-height: 1.45; }
+    .repro-box strong { color: #b9d1ff; }
+
+    .run-foot { display: flex; align-items: center; gap: 7px; padding: 0 14px; color: #767f89; background: var(--sunken); border-top: 1px solid var(--border); font-size: 12px; line-height: 1.4; }
+    .run-foot .icon { color: var(--warning); }
+    .run-foot strong { color: #aeb5bd; font-weight: 620; }
+    /* Accessibility correction: computed user-readable text floor is 12px. */
+    .screen { grid-template-rows: 56px minmax(0, 1fr); font-size: 12px; }
+    .crumbs, .stage, .top-meta { font-size: 12px; }
+    .stage, .theme-chip, .workspace-chip { min-height: 32px; }
+    .drawer-head { height: 64px; }
+    .drawer-head strong, .workspace-title small, .contract-head, .side-title, .run-head strong { font-size: 13px; }
+    .drawer-head small, .drawer-label, .tree-item, .tree-item .suffix, .version, .run-top, .run-item p, .drawer-note { font-size: 12px; line-height: 16px; }
+    .tree-item { min-height: 38px; }
+    .version { min-height: 32px; }
+    .run-item { min-height: 60px; }
+    .drawer-note { padding: 9px; }
+    .workspace { grid-template-rows: 76px 58px 408px 44px minmax(0, 1fr); }
+    .workspace-title h1 { font-size: 17px; }
+    .status-pill { min-height: 24px; font-size: 12px; }
+    .button { min-width: 32px; height: 32px; font-size: 12px; }
+    .trust-strip { align-content: center; flex-wrap: wrap; gap: 5px 9px; padding-block: 6px; font-size: 12px; line-height: 15px; white-space: normal; }
+    .trust-strip strong, .trust-warning { font-size: 13px; }
+    .editor-row { grid-template-columns: 584px 300px; }
+    .editor { grid-template-rows: 38px minmax(0, 1fr) 32px; }
+    .file-tab { height: 38px; font-size: 12px; }
+    .code { padding-block: 8px; font-size: 12px; line-height: 14.4px; }
+    .code-line { min-height: 14.4px; }
+    .code-line:nth-child(3), .code-line:nth-child(8), .code-line:nth-child(14), .code-line:nth-child(19) { display: none; }
+    .editor-status { font-size: 12px; }
+    .contract-head { height: 40px; }
+    .contract-head span, .contract-item dt, .contract-item dd, .contract-item dd.mono, .contract-foot { font-size: 12px; line-height: 16px; }
+    .contract-item { min-height: 66px; padding: 6px 8px; }
+    .contract-foot { padding: 8px 10px; }
+    .review-tab { height: 43px; min-width: 44px; font-size: 13px; }
+    .review-tab .tab-badge { min-height: 24px; display: inline-flex; align-items: center; font-size: 12px; }
+    .review-canvas { grid-template-rows: 86px minmax(0, 1fr); }
+    .summary-item { padding: 9px 7px; }
+    .summary-label, .summary-note { font-size: 12px; line-height: 14px; }
+    .summary-value { margin-top: 4px; font-size: 14px; }
+    .chart-head h2, .sample-table caption, .sensitivity-head { font-size: 13px; }
+    .chart-legend, .chart-note, .sample-table th, .sample-table td, .sensitivity-head span, .sensitivity-row, .sensitivity-note { font-size: 12px; line-height: 15px; }
+    .chart { height: 150px; }
+    .chart-note { align-items: flex-start; }
+    .validation-panel { grid-template-rows: 125px minmax(0, 1fr); }
+    .sample-table caption { height: 28px; padding-top: 7px; }
+    .sample-table th { height: 25px; }
+    .sample-table td { height: 36px; padding-block: 4px; }
+    .sensitivity { padding: 7px 9px; }
+    .sensitivity-bars { grid-template-columns: 1fr 1fr; gap: 6px 8px; margin-top: 7px; }
+    .sensitivity-row { grid-template-columns: 58px minmax(0, 1fr) 38px; gap: 5px; }
+    .sensitivity-note { margin-top: 7px; }
+    .run-panel { grid-template-rows: 64px 130px 176px 216px 310px 48px; }
+    .run-head small, .run-state, .progress-top, .budget dt, .budget dd, .side-title span, .diag-row strong, .diag-row p, .diag-value, .bias-row, .bias-status, .manifest-item dt, .manifest-item dd, .repro-box, .run-foot { font-size: 12px; line-height: 15px; }
+    .run-state { min-height: 24px; display: inline-flex; align-items: center; }
+    .progress-panel { padding-block: 9px; }
+    .budget-grid { margin-top: 8px; }
+    .budget { padding: 6px; }
+    .side-title { height: 36px; }
+    .diag-row { min-height: 46px; padding-block: 4px; }
+    .bias-list { padding-block: 0; }
+    .bias-row { min-height: 30px; grid-template-columns: 20px 105px minmax(0, 1fr) 72px; }
+    .manifest-item { min-height: 49px; padding: 6px 8px; }
+    .manifest-item dd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .repro-box { margin-block: 8px; padding: 8px; }
+    .run-foot { align-items: flex-start; padding-top: 8px; }
+  </style>
+</head>
+<body>
+  <main class="screen" aria-label="TickDeck 策略实验室和回测审阅界面">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9"></path><path d="M8 15V5"></path><path d="M12 20V11"></path><path d="M16 13V4"></path><path d="M20 18V8"></path></svg></span>
+        TickDeck
+      </div>
+      <div class="crumbs"><span>研究</span><span class="crumb-sep">/</span><strong>策略实验室</strong><span class="crumb-sep">/</span><span class="mono">股息趋势轮动.ts</span></div>
+      <span class="stage">目标 v1.0 · 最早阶段 S3</span>
+      <div class="top-spacer"></div>
+      <div class="top-meta">
+        <span class="workspace-chip"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"></path></svg>受信工作区</span>
+        <span class="theme-chip"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>深色</span>
+      </div>
+    </header>
+
+    <div class="app">
+      <nav class="rail" aria-label="当前阶段研究导航">
+        <div class="rail-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m7 16 4-5 4 3 5-7"></path></svg></div>
+        <div class="rail-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M7 12h10"></path><path d="M10 18h4"></path></svg></div>
+        <div class="rail-item active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"></path><path d="M10 9h4"></path><path d="M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"></path></svg></div>
+        <div class="rail-rule"></div>
+        <div class="rail-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div>
+        <div class="rail-item rail-bottom"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6V22h-4v-2a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1H2v-4h2a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6V2h4v2a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1h2v4h-2a1.7 1.7 0 0 0-.6 1Z"></path></svg></div>
+      </nav>
+
+      <aside class="drawer" aria-label="策略文件和运行历史">
+        <header class="drawer-head"><span><strong>策略实验室</strong><small>草稿、版本与确定性运行</small></span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></header>
+        <section class="drawer-section">
+          <h2 class="drawer-label">当前策略</h2>
+          <div class="tree-item active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>股息趋势轮动<span class="dirty" title="有未保存修改"></span></div>
+          <div class="version-list">
+            <div class="version current">v7 · 当前草稿 <span>14:31</span></div>
+            <div class="version">v6 · 回测基线 <span>#042</span></div>
+            <div class="version">v5 · 费用修订 <span>#039</span></div>
+          </div>
+        </section>
+        <section class="drawer-section">
+          <h2 class="drawer-label">文件</h2>
+          <div class="tree-item active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>strategy.ts<span class="suffix">TS</span></div>
+          <div class="tree-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h10"></path></svg>contract.json<span class="suffix">LOCKED</span></div>
+          <div class="tree-item"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>params.json<span class="suffix">6 KEYS</span></div>
+        </section>
+        <section class="drawer-section">
+          <h2 class="drawer-label">运行历史</h2>
+          <div class="run-item active"><div class="run-top">#042 · BASE <time>14:32</time></div><p>完成 · 74 笔交易 · 清单已封存</p></div>
+          <div class="run-item"><div class="run-top">#043 · OOS <time>14:35</time></div><p>完成 · 样本外收益走弱</p></div>
+          <div class="run-item"><div class="run-top">#044 · SENS <time>14:41</time></div><p>完成 · 24 个参数组合</p></div>
+        </section>
+        <div class="drawer-note"><strong>演示状态：</strong>文件、行情、结果和运行版本均为 UX 示例；不代表沙箱、数据连接器或回测引擎已经联调或获准发布。</div>
+      </aside>
+
+      <section class="workspace" aria-label="策略代码与回测审阅画布">
+        <header class="workspace-head">
+          <div class="workspace-title"><small>STRATEGY · STRAT-DIV-TREND@v7</small><h1>股息趋势轮动 · 日线 / A 股 / 下一开盘成交</h1></div>
+          <div class="head-status"><span class="status-pill success"><span class="dot"></span>编译通过</span><span class="status-pill warn"><span class="dot"></span>2 项偏差需审阅</span><span class="status-pill demo"><span class="dot"></span>演示结果</span></div>
+          <div class="head-actions"><button class="button" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 8 5-5 5 5"></path><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"></path></svg>保存新版本</button><button class="button primary" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 3 14 9-14 9V3Z"></path></svg>运行回测</button></div>
+        </header>
+
+        <div class="trust-strip" aria-label="回测数据溯源">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"></path><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"></path></svg>
+          <strong>DEMO-S3-SNAPSHOT-01 · 合成/获准演示数据</strong><span>2018-01-02 — 2025-12-31</span><span>Asia/Shanghai · CNY · 前复权</span><span class="trust-warning">部分 · 历史指数成分时点性未确认</span><span class="trust-spacer"></span><span>非当前行情 · 不可用于投资判断</span>
+        </div>
+
+        <div class="editor-row">
+          <section class="editor" aria-label="TypeScript 策略编辑器">
+            <div class="editor-tabs"><div class="file-tab active"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>strategy.ts</div><div class="file-tab">contract.json</div></div>
+            <div class="code" role="textbox" aria-label="TypeScript 策略源码" aria-multiline="true">
+              <div class="code-line"><span class="ln">1</span><span class="src"><span class="kw">import</span> { <span class="fn">defineStrategy</span>, <span class="fn">SMA</span> } <span class="kw">from</span> <span class="str">"@tickdeck/strategy"</span>;</span></div>
+              <div class="code-line"><span class="ln">2</span><span class="src"><span class="kw">import</span> { params } <span class="kw">from</span> <span class="str">"./params"</span>;</span></div>
+              <div class="code-line"><span class="ln">3</span><span class="src"></span></div>
+              <div class="code-line"><span class="ln">4</span><span class="src"><span class="kw">export default</span> <span class="fn">defineStrategy</span>({</span></div>
+              <div class="code-line"><span class="ln">5</span><span class="src">  id: <span class="str">"STRAT-DIV-TREND"</span>,</span></div>
+              <div class="code-line"><span class="ln">6</span><span class="src">  timeframe: <span class="str">"1d"</span>,</span></div>
+              <div class="code-line"><span class="ln">7</span><span class="src">  warmupBars: <span class="num">120</span>,</span></div>
+              <div class="code-line"><span class="ln">8</span><span class="src"></span></div>
+              <div class="code-line"><span class="ln">9</span><span class="src">  <span class="fn">onBar</span>(ctx: <span class="type">StrategyContext</span>) {</span></div>
+              <div class="code-line"><span class="ln">10</span><span class="src">    <span class="kw">const</span> close = ctx.series.close;</span></div>
+              <div class="code-line"><span class="ln">11</span><span class="src">    <span class="kw">const</span> ma20 = <span class="fn">SMA</span>(close, params.fast);</span></div>
+              <div class="code-line"><span class="ln">12</span><span class="src">    <span class="kw">const</span> ma120 = <span class="fn">SMA</span>(close, params.slow);</span></div>
+              <div class="code-line"><span class="ln">13</span><span class="src">    <span class="kw">if</span> (!ma120.ready) <span class="kw">return</span>;</span></div>
+              <div class="code-line"><span class="ln">14</span><span class="src"></span></div>
+              <div class="code-line"><span class="ln">15</span><span class="src">    <span class="kw">const</span> crossed = close.current &gt; ma20.current</span></div>
+              <div class="code-line"><span class="ln">16</span><span class="src">      &amp;&amp; close.previous &lt;= ma20.previous;</span></div>
+              <div class="code-line focus"><span class="ln">17</span><span class="src">    <span class="kw">const</span> hasYield = ctx.fundamentals.<span class="warn-underline">dividendYieldTtm</span></span></div>
+              <div class="code-line"><span class="ln">18</span><span class="src">      &gt;= params.minYield;</span></div>
+              <div class="code-line"><span class="ln">19</span><span class="src"></span></div>
+              <div class="code-line"><span class="ln">20</span><span class="src">    ctx.signal.<span class="fn">targetWeight</span>(crossed &amp;&amp; hasYield ? <span class="num">0.10</span> : <span class="num">0</span>, {</span></div>
+              <div class="code-line"><span class="ln">21</span><span class="src">      execution: <span class="str">"next_open"</span>,</span></div>
+              <div class="code-line"><span class="ln">22</span><span class="src">      maxPositions: <span class="num">8</span>,</span></div>
+              <div class="code-line"><span class="ln">23</span><span class="src">    });</span></div>
+              <div class="code-line"><span class="ln">24</span><span class="src">  },</span></div>
+              <div class="code-line"><span class="ln">25</span><span class="src">});</span></div>
+            </div>
+            <div class="editor-status"><span class="ok">✓ TypeScript 0 errors</span><span class="warning">△ 1 field warning</span><span>Ln 17, Col 44</span><span>UTF-8 · LF · TypeScript</span></div>
+          </section>
+
+          <aside class="contract" aria-label="冻结的策略契约">
+            <header class="contract-head">冻结策略契约 <span>CONTRACT@v6</span></header>
+            <dl class="contract-grid">
+              <div class="contract-item"><dt>市场 / 标的</dt><dd>A 股 · 沪深 300 历史成分</dd></div>
+              <div class="contract-item"><dt>周期 / 时间</dt><dd>日线 · 2018-01—2025-12</dd></div>
+              <div class="contract-item"><dt>信号</dt><dd>上穿 MA20 且 TTM 分红率 ≥ 3%</dd></div>
+              <div class="contract-item"><dt>仓位 / 风控</dt><dd>单标的 10% · 最多 8 只 · 现金 ≥ 20%</dd></div>
+              <div class="contract-item"><dt>基准 / 样本</dt><dd>沪深 300 全收益 · 2018–22 / 2023–25</dd></div>
+              <div class="contract-item"><dt>执行 / 成本</dt><dd class="mono">NEXT_OPEN · CN-A-FEE@2026-01 · SLIP 5bp</dd></div>
+            </dl>
+            <div class="contract-foot"><strong>关键未知：</strong> 历史指数成分的 point-in-time 完整性尚未验证；结果不得标记“无幸存者偏差”。</div>
+          </aside>
+        </div>
+
+        <nav class="review-tabs" aria-label="回测审阅视图"><div class="review-tab active">总览</div><div class="review-tab">样本内</div><div class="review-tab">样本外<span class="tab-badge">弱</span></div><div class="review-tab">敏感性<span class="tab-badge">警告</span></div><div class="review-tab">交易明细</div><div class="review-tab">运行清单</div></nav>
+
+        <section class="review-canvas" aria-label="确定性回测结果">
+          <div class="summary-grid">
+            <div class="summary-item"><span class="summary-label">累计收益</span><span class="summary-value">+18.7%</span><span class="summary-note">扣费后 · 演示</span></div>
+            <div class="summary-item"><span class="summary-label">基准收益</span><span class="summary-value">+22.4%</span><span class="summary-note">沪深300全收益</span></div>
+            <div class="summary-item"><span class="summary-label">超额收益</span><span class="summary-value negative">−3.7pp</span><span class="summary-note">未跑赢基准</span></div>
+            <div class="summary-item"><span class="summary-label">年化收益</span><span class="summary-value">+2.2%</span><span class="summary-note">CAGR</span></div>
+            <div class="summary-item"><span class="summary-label">最大回撤</span><span class="summary-value negative">−18.6%</span><span class="summary-note">2024-02—2024-09</span></div>
+            <div class="summary-item"><span class="summary-label">换手 / 交易</span><span class="summary-value">3.7× / 74</span><span class="summary-note">年均 / 笔</span></div>
+            <div class="summary-item"><span class="summary-label">成本影响</span><span class="summary-value negative">−2.1pp</span><span class="summary-note">费用 + 滑点</span></div>
+          </div>
+          <div class="review-detail">
+            <section class="equity-panel" aria-labelledby="equity-title">
+              <div class="chart-head"><h2 id="equity-title">确定性净值序列 · 不是收益预测</h2><div class="chart-legend"><span><i></i>策略 118.7</span><span><i></i>基准 122.4</span></div></div>
+              <div class="chart">
+                <svg viewBox="0 0 500 196" role="img" aria-label="演示策略与基准净值曲线">
+                  <g stroke="#25292e" stroke-width="1"><path d="M0 22H470"></path><path d="M0 70H470"></path><path d="M0 118H470"></path><path d="M0 166H470"></path></g>
+                  <g fill="#646d77" font-family="JetBrains Mono, monospace" font-size="12"><text x="476" y="25">130</text><text x="476" y="73">120</text><text x="476" y="121">110</text><text x="476" y="169">100</text><text x="0" y="192">2018</text><text x="115" y="192">2020</text><text x="232" y="192">2022</text><text x="348" y="192">2024</text><text x="449" y="192">2025</text></g>
+                  <path d="M0 166 C25 159 42 147 62 150 S97 127 118 134 S155 112 178 119 S217 88 238 99 S277 73 301 85 S340 66 360 78 S394 45 418 53 S451 38 470 43" fill="none" stroke="#7d858f" stroke-width="2"></path>
+                  <path d="M0 166 C24 164 43 151 63 155 S98 133 117 142 S153 119 177 128 S214 101 237 110 S272 89 300 101 S336 84 359 96 S393 68 417 81 S449 54 470 61" fill="none" stroke="#6ea8fe" stroke-width="2.5"></path>
+                  <path d="M359 96 C380 111 395 109 417 81" fill="none" stroke="#ff9559" stroke-width="6" opacity=".18"></path>
+                  <path d="M0 166H470" stroke="#59606a" stroke-dasharray="3 4" opacity=".55"></path>
+                  <circle cx="470" cy="61" r="3" fill="#6ea8fe"></circle><circle cx="470" cy="43" r="3" fill="#7d858f"></circle>
+                </svg>
+              </div>
+              <div class="chart-note"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.7 2.4 17.4A2 2 0 0 0 4.1 20h15.8a2 2 0 0 0 1.7-2.6L13.7 3.7a2 2 0 0 0-3.4 0Z"></path></svg>样本外 2023–2025 仅 +1.5%，且参数变化会转负；不能以总区间收益掩盖稳定性问题。</div>
+            </section>
+            <section class="validation-panel" aria-label="样本内外与敏感性摘要">
+              <table class="sample-table">
+                <caption>样本内 / 样本外</caption>
+                <thead><tr><th>窗口</th><th>累计</th><th>最大回撤</th><th>交易</th></tr></thead>
+                <tbody><tr><td>IS · 2018–22</td><td>+16.9%</td><td>−14.1%</td><td>49</td></tr><tr><td>OOS · 2023–25</td><td class="weak">+1.5%</td><td class="weak">−18.6%</td><td>25</td></tr></tbody>
+              </table>
+              <div class="sensitivity">
+                <div class="sensitivity-head">样本外参数敏感性 <span>范围 −2.1% — +5.8%</span></div>
+                <div class="sensitivity-bars">
+                  <div class="sensitivity-row"><span>MA 10 / 120</span><div class="bar"><span style="width:43%"></span></div><span>+5.8%</span></div>
+                  <div class="sensitivity-row"><span>MA 20 / 120</span><div class="bar"><span style="width:14%"></span></div><span>+1.5%</span></div>
+                  <div class="sensitivity-row"><span>MA 30 / 120</span><div class="bar"><span class="loss" style="width:19%"></span></div><span>−2.1%</span></div>
+                  <div class="sensitivity-row"><span>YIELD 4.0%</span><div class="bar"><span style="width:8%"></span></div><span>+0.8%</span></div>
+                </div>
+                <p class="sensitivity-note">结论：方向对关键参数不稳健。保存版本不等于验证通过；需结合 point-in-time 数据资格和固定行为基准复核。</p>
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <aside class="run-panel" aria-label="运行、诊断、偏差与复现清单">
+        <header class="run-head"><span class="run-head-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16"></path><path d="M4 8h7"></path><path d="M4 16h11"></path><circle cx="14" cy="8" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></span><span><strong>回测运行 #042</strong><small>RUN-BT-20260827-0042</small></span><span class="run-state">已完成</span></header>
+
+        <section class="progress-panel" aria-label="运行进度和预算"><div class="progress-top"><strong>确定性回测</strong><span>100% · 42.8s</span></div><div class="progress-track"><span></span></div><dl class="budget-grid"><div class="budget"><dt>实际时间 / 上限</dt><dd>42.8 / 60.0s</dd></div><div class="budget"><dt>内存 / 上限</dt><dd>684 / 1024 MiB</dd></div><div class="budget"><dt>输出 / 上限</dt><dd>12.1 / 50 MiB</dd></div></dl></section>
+
+        <section class="diagnostics" aria-label="编译器和沙箱诊断"><header class="side-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>编译器 / 沙箱诊断 <span>PRE-FLIGHT</span></header>
+          <div class="diag-row"><span class="diag-mark ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></span><span><strong>TypeScript 编译通过</strong><p>0 errors · 1 field warning 定位至 Ln 17</p></span><span class="diag-value">12.4s</span></div>
+          <div class="diag-row"><span class="diag-mark warn"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span><span><strong>能力校验：部分</strong><p>历史成分 point-in-time 完整性未知</p></span><span class="diag-value">PARTIAL</span></div>
+          <div class="diag-row"><span class="diag-mark unknown"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18h.01"></path><path d="M12 14a4 4 0 1 0-4-4"></path></svg></span><span><strong>隔离安全状态：未知</strong><p>OQ-06 未关闭；编译成功不代表沙箱安全</p></span><span class="diag-value">UNKNOWN</span></div>
+        </section>
+
+        <section class="bias-panel" aria-label="回测偏差检查"><header class="side-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m7 16 4-5 4 3 5-7"></path></svg>偏差检查矩阵 <span>2 NEED REVIEW</span></header><div class="bias-list">
+          <div class="bias-row"><span class="bias-icon ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></span><span class="bias-name">未来函数 / 前视</span><span class="bias-detail">next_open · 当日收盘后信号</span><span class="bias-status pass">PASS</span></div>
+          <div class="bias-row"><span class="bias-icon ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></span><span class="bias-name">指标预热</span><span class="bias-detail">120 bars · 未就绪不发信号</span><span class="bias-status pass">PASS</span></div>
+          <div class="bias-row"><span class="bias-icon ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></span><span class="bias-name">未确认 K 线</span><span class="bias-detail">日线完成后计算</span><span class="bias-status pass">PASS</span></div>
+          <div class="bias-row"><span class="bias-icon ok"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></span><span class="bias-name">费用 / 滑点</span><span class="bias-detail">版本化费率 + 5bp</span><span class="bias-status pass">PASS</span></div>
+          <div class="bias-row"><span class="bias-icon warn"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span><span class="bias-name">幸存者偏差</span><span class="bias-detail">历史成分不可完全判定</span><span class="bias-status warn">无法判定</span></div>
+          <div class="bias-row"><span class="bias-icon warn"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span><span class="bias-name">参数过拟合</span><span class="bias-detail">OOS 走弱且敏感性跨零</span><span class="bias-status warn">WARNING</span></div>
+        </div></section>
+
+        <section class="manifest" aria-label="回测溯源和复现清单"><header class="side-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>溯源 / 复现清单 <span>SEALED SAMPLE</span></header><dl class="manifest-grid">
+          <div class="manifest-item"><dt>SOURCE</dt><dd title="strategy.ts · sha256:8b41…2e77">strategy.ts · sha256:8b41…2e77</dd></div><div class="manifest-item"><dt>CONTRACT</dt><dd title="CONTRACT@v6 · sha256:cc91…102f">CONTRACT@v6 · sha256:cc91…102f</dd></div>
+          <div class="manifest-item"><dt>DATA</dt><dd title="DEMO-S3-SNAPSHOT-01 · 6fd3…aa80">DEMO-S3-SNAPSHOT-01 · 6fd3…aa80</dd></div><div class="manifest-item"><dt>ENGINE</dt><dd title="backtest-core@example-0.6.0">backtest-core@example-0.6.0</dd></div>
+          <div class="manifest-item"><dt>COMPILER</dt><dd title="typescript@example-6.x · locked">typescript@example-6.x · locked</dd></div><div class="manifest-item"><dt>RUNTIME</dt><dd title="sandbox-profile@UNKNOWN · OQ-06">sandbox-profile@UNKNOWN · OQ-06</dd></div>
+          <div class="manifest-item"><dt>MARKET RULES</dt><dd title="CN-A-CALENDAR@example-2026-01">CN-A-CALENDAR@example-2026-01</dd></div><div class="manifest-item"><dt>COST MODEL</dt><dd title="CN-A-FEE@example-2026-01 + 5bp">CN-A-FEE@example-2026-01 + 5bp</dd></div>
+        </dl><div class="repro-box"><strong>复现设计态：</strong>源码、契约、参数、数据快照、引擎、编译器、市场规则与成本模型均有稳定身份；但这些版本号与结果仅为 UX 示例，未经工程实现、真实数据资格或固定行为基准验收，不能宣称已经可复现。</div></section>
+
+        <footer class="run-foot"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg><span><strong>确定性结果不等于投资结论。</strong> 本屏不提供任何资金或订单副作用入口。</span></footer>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

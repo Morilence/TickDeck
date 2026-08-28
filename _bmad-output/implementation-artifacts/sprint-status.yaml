@@ -1,0 +1,333 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 08-28-2026 13:51
+last_updated: 08-28-2026 16:45
+project: TickDeck
+project_key: NOKEY
+tracking_system: file-system
+story_location: /usr/local/src/TickDeck/_bmad-output/implementation-artifacts
+
+# GATE PLANNING CONTRACT:
+# development_status is the delivery workflow vocabulary owned by sprint_plan.py.
+# It does not grant implementation authority. story_gate_status is the planning
+# authority for whether a Story may enter the current executable scope.
+planning_contract:
+  readiness_gate: PASS
+  authority:
+    epic_file: _bmad-output/planning-artifacts/epics.md
+    epic_file_sha256: "a1a475f26604f0d80412222f1fcc1acf20ab3612ac8db80a844ed40463068906"
+    spec: _bmad-output/specs/spec-tickdeck/SPEC.md
+    contract_index: _bmad-output/specs/spec-tickdeck/contract-index.md
+    companions:
+      - _bmad-output/planning-artifacts/prds/prd-TickDeck-2026-08-27/prd.md
+      - _bmad-output/planning-artifacts/prds/prd-TickDeck-2026-08-27/addendum.md
+      - _bmad-output/planning-artifacts/ux-designs/ux-TickDeck-2026-08-27/DESIGN.md
+      - _bmad-output/planning-artifacts/ux-designs/ux-TickDeck-2026-08-27/EXPERIENCE.md
+      - _bmad-output/planning-artifacts/architecture/architecture-TickDeck-2026-08-27/ARCHITECTURE-SPINE.md
+    inherited_story_fields:
+      - Epic/Story ID 与标题
+      - 依赖
+      - 阶段
+      - 需求追踪关系
+      - blocker 与验收条件
+    key_binding: Story N.M 绑定到 development_status 中以 N-M- 开头的键。
+  stage_order:
+    - S0-V
+    - S0
+    - S1
+    - S2
+    - S3
+    - S4
+    - S5
+  current_stage: S0-V
+  current_executable_scope:
+    - "1.1"
+  executable_story_count: 1
+  blocked_story_count: 69
+  epic_gate_status:
+    "1": current-stage
+    "2": blocked
+    "3": blocked
+    "4": blocked
+    "5": blocked
+    "6": blocked
+    "7": blocked
+    "8": blocked
+  story_gate_status:
+    "1.1": executable
+    "1.2": blocked
+    "1.3": blocked
+    "1.4": blocked
+    "1.5": blocked
+    "1.6": blocked
+    "1.7": blocked
+    "1.8": blocked
+    "2.1": blocked
+    "2.2": blocked
+    "2.3": blocked
+    "2.4": blocked
+    "2.5": blocked
+    "2.6": blocked
+    "2.7": blocked
+    "2.8": blocked
+    "2.9": blocked
+    "2.10": blocked
+    "2.11": blocked
+    "2.12": blocked
+    "2.13": blocked
+    "3.1": blocked
+    "3.2": blocked
+    "3.3": blocked
+    "3.4": blocked
+    "3.5": blocked
+    "3.6": blocked
+    "3.7": blocked
+    "3.8": blocked
+    "3.9": blocked
+    "4.1": blocked
+    "4.2": blocked
+    "4.3": blocked
+    "4.4": blocked
+    "4.5": blocked
+    "4.6": blocked
+    "4.7": blocked
+    "4.8": blocked
+    "4.9": blocked
+    "5.1": blocked
+    "5.2": blocked
+    "5.3": blocked
+    "5.4": blocked
+    "5.5": blocked
+    "5.6": blocked
+    "5.7": blocked
+    "5.8": blocked
+    "6.1": blocked
+    "6.2": blocked
+    "6.3": blocked
+    "6.4": blocked
+    "6.5": blocked
+    "6.6": blocked
+    "6.7": blocked
+    "6.8": blocked
+    "6.9": blocked
+    "7.1": blocked
+    "7.2": blocked
+    "7.3": blocked
+    "7.4": blocked
+    "7.5": blocked
+    "7.6": blocked
+    "7.7": blocked
+    "8.1": blocked
+    "8.2": blocked
+    "8.3": blocked
+    "8.4": blocked
+    "8.5": blocked
+    "8.6": blocked
+    "8.7": blocked
+  open_blockers:
+    - id: S0V-REAL-DATA
+      closes_before: Story 1.2 真实实验与 Story 1.3 验收
+      state: open
+      condition: 冻结一条合法真实数据路径、精确 connector/profile 与授权证据。
+    - id: S0V-TASK-ORACLE
+      closes_before: Story 1.4 真实筛选验收
+      state: open
+      condition: 冻结任务语义、oracle 数据与 digest、算子、null/time 规则和通过阈值。
+    - id: S0V-MODEL
+      closes_before: Story 1.5 真实 Agent 实验
+      state: open
+      condition: 登记并资格化精确 provider/model/prompt/toolset/endpoint 组合。
+    - id: SM-00-EVIDENCE
+      closes_before: Story 1.7、Story 1.8 与 S0
+      state: open
+      condition: 以至少 12 名合格 alpha 用户完成冻结实验、配对任务、盲审与两周复用证据。
+    - id: OQ-03
+      closes_before: S1
+      state: open
+      condition: 独立资格化一条合法免费 A 股路径和一条合法免费港股路径，否则显式收窄市场范围。
+    - id: OQ-06
+      closes_before: S0 沙箱能力注册与 S3
+      state: open
+      condition: 锁定精确 compiler/componentizer/source-map 与 WIT/WASI 
+        版本、确定性输出及五平台证据。
+    - id: VAULT-PROFILE
+      closes_before: Story 2.4 秘密管理能力
+      state: open
+      condition: 安全评审必须锁定精确库、算法、KDF、轮换/迁移和 headless secret-file 规则。
+    - id: FIVE-PLATFORM-BASELINE
+      closes_before: S0 与 S5 发行声明
+      state: open
+      condition: 真实 release spike 必须锁定最低 OS/libc/system WebView profile 
+        以及安装、启动、升级和回滚证据。
+    - id: EXACT-ADAPTER-CATALOG
+      closes_before: 各受影响阶段 Gate
+      state: open
+      condition: 登记精确模型、通知、连接器及官方扩展的版本、权限、许可、来源 hash、健康与资格。
+    - id: OQ-04
+      closes_before: 公开 beta 与 S4/S5 发行 Gate
+      state: open
+      condition: 按实际数据、模型、通知、隐私和第三方内容路径核对法律文本。
+    - id: FR-029-CATALOG
+      closes_before: Story 5.1
+      state: open
+      condition: 通过上游产品决策冻结精确内置指标发布目录和默认参数。
+    - id: RELEASE-GOVERNANCE
+      closes_before: Story 8.4 与最终 S5 Gate
+      state: open
+      condition: 授权维护者必须确认维护责任、CODEOWNERS、支持与安全响应窗口，并完成真实演练。
+  go_stop_gates:
+    S0-V:
+      go: SM-00 全部条件基于有效真实证据通过。
+      stop_or_narrow: 若时间、错误/遗漏和复用收益失败，停止全工具 Agent thesis 或收窄为辅助 Agent。
+    S0:
+      go: 契约、权限、双入口等价、沙箱与恢复证据通过。
+      stop_or_narrow: 无法形成安全且可复现的共同运行时时，停止全工具 Agent。
+    S1:
+      go: 合格路径的 PRD 6.4 能力画像与许可记录通过。
+      stop_or_narrow: 任一市场缺少合法可用路径时，不承诺该市场的 A/港股 v1.0。
+    S2:
+      go: SM-02、SM-04 与 SM-10 通过。
+      stop_or_narrow: 语义或数据资格不稳定时保持实验，不扩张策略能力。
+    S3:
+      go: SM-03、SM-05、SM-07 与 SM-11 通过。
+      stop_or_narrow: 若只能编译而无法通过行为资格，停止自动策略生成。
+    S4:
+      go: SM-06、SM-12、SM-13、SM-14 与 SM-16 通过。
+      stop_or_narrow: 无法证明副作用一致性和市场规则正确时，不启用 Agent 模拟交易。
+    S5:
+      go: 全部 v1.0 SM 与 NFR 证据通过。
+      stop_or_narrow: 未满足的能力切片保持 beta，不以 v1.0 发布。
+  scope_exclusions:
+    - 实盘下单、券商连接、跟单、自动交易、投资顾问及无人值守交易。
+    - ETF、场外基金、债券、期货、期权、外汇、加密、美股及其他全球资产的一等支持。
+    - 用户、组织、RBAC、多租户、陌生用户共享、官方托管 SaaS 或跨主机拓扑。
+    - 社交、直播、课程、公开脚本社区、在线插件市场、远程一键安装或受支持的外部公共 REST API。
+    - 内置、转售或绕授权取得商用数据；自动多模型路由、多 Agent 编排；模型下载、量化、GPU 或推理服务运维。
+    - 移动端验收、完整离线模式，或逐像素复制 TradingView 与其全球资产/全部工具。
+  authorization_rules:
+    - 后续阶段 Story、实验能力、adapter、接口、manifest 槽位或 UI 预留均不构成当前实施授权。
+    - 所有已记录依赖、Gate 和适用开放 blocker 未以有效证据关闭前，Story 持续为 blocked。
+    - demo、fixture、mock、编译成功、接口存在、模型自评或部分证据不能替代真实 Gate。
+    - Stop、Narrow、blocked、过期、漂移或缺失证据向后传播，并阻止后续能力注册。
+development_status:
+  epic-1: backlog
+  1-1-建立锁定的-s0-v-项目骨架与阶段壳: backlog
+  1-2-冻结并校验-s0-v-实验合同: backlog
+  1-3-准入冻结的真实数据快照: backlog
+  1-4-执行规范化只读筛选与-oracle-校验: backlog
+  1-5-编排受限的-r0-agent-运行: backlog
+  1-6-审阅可追溯的筛选证据: backlog
+  1-7-记录同任务对照与两周复用证据: backlog
+  1-8-生成不可伪造的-sm-00-go-stop-决策: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-建立唯一工作区身份与持久化真值: backlog
+  2-2-保证命令-任务-审计与恢复一致: backlog
+  2-3-建立受保护的单工作区会话: backlog
+  2-4-实现独立-vault-与-secretref-生命周期: backlog
+  2-5-编译默认拒绝的-datausepolicy: backlog
+  2-6-执行受控出站与拨号前授权: backlog
+  2-7-计算统一风险并签发不可重放授权: backlog
+  2-8-提供确定性的-demo-non-current-路径: backlog
+  2-9-锁定-typescript-component-工具链与资源档案: backlog
+  2-10-在一次性-wasmtime-子进程中通过沙箱合规套件: backlog
+  2-11-交付同一内核的桌面-本地与远端-b-s-入口: backlog
+  2-12-提供分层健康与脱敏诊断: backlog
+  2-13-生成-s0-gate-资格决定: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-资格化真实-a-股与港股连接器路径: backlog
+  3-2-统一市场语义-数据溯源与显式降级: backlog
+  3-3-搜索标的并检查基础行情图形: backlog
+  3-4-组合窗格-指标-比较与基准: backlog
+  3-5-创建绘图并版本化研究布局: backlog
+  3-6-管理多份自选列表: backlog
+  3-7-构建-保存并复跑证据化筛选器: backlog
+  3-8-审阅公司-财务-行动与资讯证据: backlog
+  3-9-生成-s1-双市场研究-gate-决定: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-配置并资格化精确模型档案: backlog
+  4-2-冻结自然语言目标并编排当前阶段工具: backlog
+  4-3-授予并撤销-r1-范围授权: backlog
+  4-4-执行-r2-单次授权并永久阻止-r3: backlog
+  4-5-管理预算-取消-暂停与幂等恢复: backlog
+  4-6-生成事实分层且可追溯的-agent-产物: backlog
+  4-7-产品化可审计选股-agent-运行: backlog
+  4-8-锁定可信策略验证的-agent-编排合同: backlog
+  4-9-生成-s2-单-agent-与风险-gate-决定: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-冻结并实现内置指标目录: backlog
+  5-2-提供版本化-typescript-编辑与窄化-api: backlog
+  5-3-编译并在一次性沙箱中受限试运行: backlog
+  5-4-将指标与策略信号接回图表: backlog
+  5-5-冻结策略契约-运行清单与-a-港股执行假设: backlog
+  5-6-生成完整回测报告并检查常见偏差: backlog
+  5-7-执行样本外-敏感性-比较与长时运行: backlog
+  5-8-完成-agent-策略验证并生成-s3-gate-决定: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-创建并版本化提醒生命周期: backlog
+  6-2-生成不可重复的提醒触发证据: backlog
+  6-3-投递产品内通知与受控-webhook: backlog
+  6-4-管理数据资产生命周期与许可撤回: backlog
+  6-5-管理模拟组合与多币种现金: backlog
+  6-6-提交模拟订单并确定性撮合: backlog
+  6-7-核算持仓-绩效与公司行动: backlog
+  6-8-经逐次确认把策略信号接入模拟组合: backlog
+  6-9-生成-s4-提醒与模拟组合-gate-决定: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-定义四类受信扩展的类型化合同: backlog
+  7-2-在受信-sidecar-边界校验外部输入: backlog
+  7-3-提供四类扩展贡献脚手架与演示验证: backlog
+  7-4-强制区分受限脚本与受信扩展: backlog
+  7-5-版本化-废弃并限制公共扩展表面: backlog
+  7-6-治理本地扩展安装-升级-撤回与回滚: backlog
+  7-7-生成-s5-受信扩展治理-gate-决定: backlog
+  epic-7-retrospective: optional
+
+  epic-8: backlog
+  8-1-构建同一-payload-的-b-s-与桌面发行物: backlog
+  8-2-备份-恢复并迁移完整工作区: backlog
+  8-3-在真实-a-港股路径执行-parity-rubric: backlog
+  8-4-发布并演练开源治理与安全响应: backlog
+  8-5-强制切片-gate-与-capability-release-manifest-一致: backlog
+  8-6-验证五平台安装-升级-回滚与等价: backlog
+  8-7-生成最终-s5-与-v1-0-发布决定: backlog
+  epic-8-retrospective: optional

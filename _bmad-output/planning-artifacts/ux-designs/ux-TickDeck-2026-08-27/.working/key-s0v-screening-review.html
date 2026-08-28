@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TickDeck · S0-V Agent 筛选证据审阅</title>
+  <style>
+    /*
+      TickDeck dark-first / Base Vega semantic sample
+      bg #080A0D | shell #0D1014 | surface #11151A | raised #171C22
+      border #252B33 | ink #E8EAED | muted #8E96A1 | accent #5FC4D6
+      success #6FC49A | warning #E3AE58 | danger #E67873 | info #7EA6F8
+    */
+    :root {
+      color-scheme: dark;
+      --bg: #080a0d;
+      --shell: #0d1014;
+      --surface: #11151a;
+      --surface-2: #171c22;
+      --surface-3: #1b2128;
+      --border: #252b33;
+      --border-strong: #333b45;
+      --ink: #e8eaed;
+      --ink-soft: #c4c9cf;
+      --muted: #8e96a1;
+      --quiet: #626b77;
+      --accent: #5fc4d6;
+      --accent-soft: rgba(95, 196, 214, .12);
+      --success: #6fc49a;
+      --success-soft: rgba(111, 196, 154, .11);
+      --warning: #e3ae58;
+      --warning-soft: rgba(227, 174, 88, .12);
+      --danger: #e67873;
+      --danger-soft: rgba(230, 120, 115, .12);
+      --info: #7ea6f8;
+      --info-soft: rgba(126, 166, 248, .12);
+      --radius: 10px;
+      --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+      --sans: Inter, "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      font-family: var(--sans);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 1600px;
+      height: 1000px;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button { font: inherit; }
+
+    .screen {
+      width: 1600px;
+      height: 1000px;
+      display: grid;
+      grid-template-rows: 52px minmax(0, 1fr);
+      background:
+        radial-gradient(circle at 67% 0%, rgba(95, 196, 214, .045), transparent 31%),
+        var(--bg);
+    }
+
+    .icon {
+      width: 15px;
+      height: 15px;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      padding: 0 18px;
+      background: rgba(13, 16, 20, .96);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      width: 190px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 720;
+      letter-spacing: -.02em;
+    }
+
+    .brand-mark {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      color: #081013;
+      background: var(--accent);
+      border-radius: 7px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.05), 0 0 18px rgba(95,196,214,.12);
+    }
+
+    .brand-mark .icon { width: 14px; height: 14px; stroke-width: 2.2; }
+
+    .stage-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--ink-soft);
+      font-size: 12px;
+      font-weight: 620;
+    }
+
+    .stage-chip {
+      padding: 5px 8px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid rgba(95, 196, 214, .23);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: .04em;
+    }
+
+    .top-spacer { flex: 1; }
+
+    .top-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--warning);
+      box-shadow: 0 0 0 3px var(--warning-soft);
+    }
+
+    .top-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      color: #b8bec6;
+      background: #14181d;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+    }
+
+    .layout {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr) 390px;
+    }
+
+    .rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+      padding: 16px 9px;
+      background: #0b0e12;
+      border-right: 1px solid var(--border);
+    }
+
+    .rail-item {
+      width: 54px;
+      height: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      color: var(--quiet);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .rail-item.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: inset 2px 0 0 var(--accent);
+    }
+
+    .rail-item .icon { width: 17px; height: 17px; }
+
+    .rail-rule { width: 34px; height: 1px; margin: 3px 0; background: var(--border); }
+    .rail-foot { margin-top: auto; color: #69727d; }
+
+    .review {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 92px 48px minmax(0, 1fr);
+      border-right: 1px solid var(--border);
+    }
+
+    .task-head {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 22px;
+      background: #0e1115;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .task-main { min-width: 0; }
+
+    .task-kicker {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: .04em;
+    }
+
+    .task-kicker .icon { width: 12px; height: 12px; color: var(--accent); }
+
+    .task-main h1 {
+      max-width: 700px;
+      margin: 0;
+      overflow: hidden;
+      color: #f1f3f4;
+      font-size: 18px;
+      font-weight: 660;
+      letter-spacing: -.025em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .frozen {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .frozen .icon { width: 11px; height: 11px; color: var(--info); }
+
+    .identity-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px 20px;
+      min-width: 390px;
+      margin-left: auto;
+      padding-left: 22px;
+    }
+
+    .identity-grid dt {
+      margin: 0 0 3px;
+      color: var(--quiet);
+      font-size: 12px;
+      font-weight: 720;
+      letter-spacing: .1em;
+    }
+
+    .identity-grid dd {
+      margin: 0;
+      color: #cdd2d8;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .trust-strip {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 18px;
+      background: #12171b;
+      border-bottom: 1px solid var(--border);
+      color: #aeb5bd;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .trust-strip > .icon { color: var(--success); }
+
+    .trust-strong { color: #d6dae0; font-weight: 660; }
+
+    .divider { width: 1px; height: 17px; background: var(--border-strong); }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .pill.info { color: #a8c0ff; background: var(--info-soft); border-color: rgba(126,166,248,.18); }
+    .pill.warn { color: #efc77e; background: var(--warning-soft); border-color: rgba(227,174,88,.2); }
+    .pill.partial { color: #b9a7f0; background: rgba(156,127,222,.12); border-color: rgba(156,127,222,.2); }
+    .pill.good { color: #91dab4; background: var(--success-soft); border-color: rgba(111,196,154,.18); }
+    .pill .mini-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+    .trust-note { margin-left: auto; color: #69737e; font-size: 12px; }
+
+    .review-body {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 143px 60px 305px minmax(0, 1fr);
+      gap: 10px;
+      padding: 12px 16px 14px;
+      background:
+        linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.009) 1px, transparent 1px),
+        #0c0f13;
+      background-size: 24px 24px;
+    }
+
+    .panel {
+      min-width: 0;
+      background: rgba(17, 21, 26, .94);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .criteria-panel {
+      display: grid;
+      grid-template-columns: 175px minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    .criteria-summary {
+      padding: 14px;
+      background: #13181d;
+      border-right: 1px solid var(--border);
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: .1em;
+    }
+
+    .section-label .icon { width: 12px; height: 12px; }
+
+    .criteria-summary strong {
+      display: block;
+      margin: 13px 0 5px;
+      font-family: var(--mono);
+      font-size: 25px;
+      font-weight: 640;
+    }
+
+    .criteria-summary p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+    .logic-row {
+      display: grid;
+      grid-template-columns: 33px 1.3fr .8fr .55fr;
+      align-items: center;
+      min-height: 27px;
+      padding: 0 12px;
+      border-bottom: 1px solid rgba(37,43,51,.72);
+      font-size: 12px;
+    }
+
+    .logic-row:last-child { border-bottom: 0; }
+    .logic-index { color: #68727e; font-family: var(--mono); }
+    .logic-expr { color: #d3d7dc; font-family: var(--mono); }
+    .logic-source { color: #87909b; }
+    .logic-null { justify-self: end; color: #c4a96f; }
+
+    .oracle-alert {
+      display: grid;
+      grid-template-columns: 32px 1fr 320px;
+      align-items: center;
+      gap: 9px;
+      padding: 0 13px;
+      background: linear-gradient(90deg, var(--danger-soft), rgba(230,120,115,.035));
+      border: 1px solid rgba(230, 120, 115, .28);
+      border-radius: var(--radius);
+    }
+
+    .alert-icon {
+      width: 27px;
+      height: 27px;
+      display: grid;
+      place-items: center;
+      color: var(--danger);
+      background: rgba(230,120,115,.1);
+      border-radius: 7px;
+    }
+
+    .alert-icon .icon { width: 14px; height: 14px; }
+    .oracle-alert strong { display: block; color: #f0d1cf; font-size: 12px; }
+    .oracle-alert p { margin: 3px 0 0; color: #a99899; font-size: 12px; }
+    .alert-audit { color: #c9a7a5; font-family: var(--mono); font-size: 12px; line-height: 1.5; text-align: right; }
+
+    .evidence-panel { overflow: hidden; }
+
+    .panel-head {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 13px;
+      background: #13171c;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-head h2 { margin: 0; font-size: 12px; font-weight: 670; }
+    .panel-head p { margin: 3px 0 0; color: var(--quiet); font-size: 12px; }
+    .result-count { margin-left: auto; color: #b9c0c8; font-family: var(--mono); font-size: 12px; }
+    .result-count strong { color: var(--accent); font-size: 16px; }
+
+    .evidence-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .evidence-table th {
+      height: 30px;
+      padding: 0 9px;
+      color: #727c87;
+      background: #101419;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .08em;
+      text-align: left;
+    }
+
+    .evidence-table td {
+      height: 58px;
+      padding: 7px 9px;
+      border-bottom: 1px solid var(--border);
+      color: #b8bec6;
+      font-size: 12px;
+      vertical-align: middle;
+    }
+
+    .evidence-table tbody tr:last-child td { border-bottom: 0; }
+    .evidence-table th:not(:last-child), .evidence-table td:not(:last-child) { border-right: 1px solid rgba(37,43,51,.68); }
+
+    .candidate { display: flex; align-items: center; gap: 9px; }
+    .market-glyph { width: 25px; height: 25px; display: grid; place-items: center; color: var(--accent); background: var(--accent-soft); border-radius: 6px; font-family: var(--mono); font-size: 12px; font-weight: 750; }
+    .candidate strong { display: block; color: #e1e4e7; font-size: 12px; font-weight: 650; }
+    .candidate span { display: block; margin-top: 3px; color: #6f7984; font-family: var(--mono); font-size: 12px; }
+
+    .value { display: block; color: #d9dde1; font-family: var(--mono); font-size: 12px; }
+    .proof { display: block; margin-top: 4px; color: #737d88; font-size: 12px; }
+    .pass { color: var(--success); }
+    .unknown { color: var(--warning); }
+    .evidence-status { display: inline-flex; align-items: center; gap: 5px; color: #92d8b4; font-family: var(--mono); font-size: 12px; }
+
+    .table-foot {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 12px;
+      color: #96a0aa;
+      background: #0f1317;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .table-foot .icon { color: var(--success); }
+    .table-foot strong { color: #cdd2d7; }
+    .near-miss { margin-left: auto; color: #828c97; font-family: var(--mono); }
+
+    .bottom-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1.08fr .92fr;
+      gap: 10px;
+    }
+
+    .metrics-panel { overflow: hidden; }
+
+    .metrics-title {
+      height: 39px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--border);
+      color: #c7ccd1;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .not-verdict { margin-left: auto; color: var(--warning); font-size: 12px; font-weight: 650; }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      height: 108px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 10px 11px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .metric:nth-child(3n) { border-right: 0; }
+    .metric:nth-child(n+4) { border-bottom: 0; }
+    .metric-label { color: #747e89; font-size: 12px; font-weight: 720; letter-spacing: .07em; }
+    .metric-value { display: block; margin-top: 5px; color: #e2e5e8; font-family: var(--mono); font-size: 13px; font-weight: 620; }
+    .metric-note { display: block; margin-top: 3px; color: #757f8a; font-size: 12px; }
+    .metric-value.bad { color: var(--danger); }
+    .metric-value.pending { color: var(--warning); }
+
+    .metric-foot {
+      display: flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 11px;
+      color: #68727d;
+      background: #0f1317;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .metric-foot strong { color: #98a1aa; }
+
+    .manifest-panel { overflow: hidden; }
+    .manifest-head { height: 39px; display: flex; align-items: center; padding: 0 12px; color: #c7ccd1; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 650; }
+    .manifest-head span { margin-left: auto; color: var(--success); font-family: var(--mono); font-size: 12px; }
+
+    .manifest-body { display: grid; grid-template-columns: 1fr 1fr; }
+    .manifest-item { min-width: 0; padding: 9px 11px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .manifest-item:nth-child(2n) { border-right: 0; }
+    .manifest-item:nth-last-child(-n+2) { border-bottom: 0; }
+    .manifest-item dt { margin: 0 0 4px; color: #65707b; font-size: 12px; font-weight: 720; letter-spacing: .07em; }
+    .manifest-item dd { margin: 0; overflow: hidden; color: #abb3bc; font-family: var(--mono); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+
+    .risk-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      min-height: 36px;
+      padding: 8px 11px;
+      border-top: 1px solid var(--border);
+      color: #8f98a2;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .risk-row .icon { width: 11px; height: 11px; color: var(--warning); }
+
+    .agent {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 72px 112px minmax(0, 1fr) 152px 56px;
+      background: #0d1014;
+    }
+
+    .agent-head {
+      display: flex;
+      align-items: center;
+      padding: 0 17px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .agent-icon {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      margin-right: 9px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid rgba(95,196,214,.18);
+      border-radius: 8px;
+    }
+
+    .agent-icon .icon { width: 14px; height: 14px; }
+    .agent-head strong { display: block; font-size: 12px; }
+    .agent-head small { display: block; margin-top: 4px; color: var(--quiet); font-family: var(--mono); font-size: 12px; }
+
+    .r0-badge {
+      margin-left: auto;
+      padding: 5px 7px;
+      color: #8bd9b0;
+      background: var(--success-soft);
+      border: 1px solid rgba(111,196,154,.2);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .agent-context {
+      padding: 13px 16px;
+      background: #11161b;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .agent-context-title { display: flex; align-items: center; gap: 6px; color: #aab2ba; font-size: 12px; font-weight: 700; }
+    .agent-context-title .icon { width: 11px; height: 11px; color: var(--info); }
+    .context-id { margin-top: 9px; color: #d4d8dc; font-family: var(--mono); font-size: 12px; }
+    .context-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .context-meta span { padding: 4px 6px; color: #858f99; background: #181e24; border: 1px solid var(--border); border-radius: 5px; font-family: var(--mono); font-size: 12px; }
+
+    .timeline-wrap { min-height: 0; overflow: hidden; padding: 15px 16px 10px; }
+    .timeline-label { display: flex; align-items: center; gap: 6px; color: #707b86; font-size: 12px; font-weight: 750; letter-spacing: .08em; }
+    .timeline-label .icon { width: 11px; height: 11px; }
+
+    .timeline { position: relative; margin: 14px 0 0; padding: 0 0 0 23px; list-style: none; }
+    .timeline::before { content: ""; position: absolute; top: 7px; bottom: 14px; left: 6px; width: 1px; background: #2b323b; }
+
+    .timeline li { position: relative; min-height: 57px; padding: 0 0 13px; }
+    .timeline li::before { content: ""; position: absolute; top: 2px; left: -21px; width: 9px; height: 9px; background: #192027; border: 2px solid #687583; border-radius: 50%; }
+    .timeline li.tool::before { border-color: var(--info); box-shadow: 0 0 0 3px var(--info-soft); }
+    .timeline li.issue::before { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
+    .timeline li.result::before { border-color: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+
+    .node-top { display: flex; align-items: center; gap: 6px; }
+    .node-type { color: #68737f; font-family: var(--mono); font-size: 12px; font-weight: 760; }
+    .node-time { margin-left: auto; color: #505a65; font-family: var(--mono); font-size: 12px; }
+    .timeline strong { display: block; margin-top: 4px; color: #cbd0d5; font-size: 12px; font-weight: 620; }
+    .timeline p { margin: 4px 0 0; color: #77818c; font-size: 12px; line-height: 1.45; }
+    .tool-call { margin-top: 5px; padding: 5px 7px; color: #8895a2; background: #12171c; border: 1px solid #202731; border-radius: 5px; font-family: var(--mono); font-size: 12px; }
+
+    .audit-panel {
+      margin: 0 16px;
+      padding: 12px;
+      background: #12171c;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .audit-head { display: flex; align-items: center; color: #bbc1c7; font-size: 12px; font-weight: 660; }
+    .audit-head .icon { margin-right: 6px; color: var(--success); }
+    .audit-head span { margin-left: auto; color: var(--success); font-family: var(--mono); font-size: 12px; }
+
+    .audit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 12px; margin-top: 12px; }
+    .audit-grid dt { margin: 0 0 3px; color: #65707b; font-size: 12px; }
+    .audit-grid dd { margin: 0; color: #aeb6be; font-family: var(--mono); font-size: 12px; }
+    .audit-grid .zero { color: var(--success); }
+
+    .agent-foot {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      color: #707a84;
+      background: #0b0e12;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .agent-foot .icon { color: var(--warning); }
+    .agent-foot strong { color: #a6aeb6; font-weight: 620; }
+    /* Accessibility correction: computed user-readable text floor is 12px. */
+    .screen { grid-template-rows: 56px minmax(0, 1fr); font-size: 12px; }
+    .stage-title, .top-meta { font-size: 13px; }
+    .stage-chip, .top-tag { min-height: 32px; font-size: 12px; }
+    .rail { padding-top: 12px; }
+    .rail-item { font-size: 12px; line-height: 14px; }
+    .review { grid-template-rows: 104px 66px minmax(0, 1fr); }
+    .task-kicker, .frozen, .identity-grid dt, .identity-grid dd { font-size: 12px; line-height: 16px; }
+    .task-main h1 { max-width: 680px; font-size: 20px; }
+    .identity-grid { min-width: 410px; gap: 7px 18px; }
+    .trust-strip { align-content: center; flex-wrap: wrap; gap: 5px 9px; padding-block: 6px; font-size: 12px; line-height: 15px; }
+    .trust-strong { font-size: 13px; }
+    .pill { min-height: 24px; font-size: 12px; }
+    .trust-note { flex-basis: 100%; margin-left: 24px; color: #9ba3ad; font-size: 12px; white-space: normal; }
+    .review-body { grid-template-rows: 140px 62px 290px minmax(0, 1fr); gap: 8px; padding: 10px 14px; }
+    .section-label, .oracle-alert strong, .candidate strong, .timeline strong, .agent-context-title, .audit-head { font-size: 13px; }
+    .criteria-summary { padding: 11px 13px; }
+    .criteria-summary p, .logic-row, .oracle-alert p, .alert-audit { font-size: 12px; line-height: 15px; }
+    .logic-row { min-height: 27px; }
+    .oracle-alert { grid-template-columns: 32px minmax(0, 1fr) 265px; }
+    .panel-head { height: 46px; }
+    .panel-head h2 { font-size: 14px; }
+    .panel-head p, .result-count { font-size: 12px; }
+    .evidence-table th { height: 30px; font-size: 12px; line-height: 14px; }
+    .evidence-table td { height: 50px; padding-block: 5px; font-size: 12px; line-height: 14px; }
+    .market-glyph { min-width: 25px; font-size: 12px; }
+    .candidate span, .value, .proof, .evidence-status { font-size: 12px; line-height: 14px; }
+    .table-foot { height: 64px; align-items: flex-start; padding-top: 9px; font-size: 12px; line-height: 16px; }
+    .table-foot > span:not(.near-miss) { flex: 1; }
+    .near-miss { max-width: 255px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .metrics-title, .manifest-head { height: 40px; font-size: 13px; }
+    .not-verdict, .manifest-head span { font-size: 12px; }
+    .metrics-grid { height: 118px; }
+    .metric { padding: 6px 8px; }
+    .metric-label, .metric-note, .metric-foot, .manifest-item dt, .manifest-item dd, .risk-row { font-size: 12px; line-height: 15px; }
+    .metric-value { margin-top: 3px; font-size: 14px; }
+    .metric-note { margin-top: 2px; }
+    .metric-foot { min-height: 64px; align-items: flex-start; padding-top: 8px; }
+    .manifest-item { min-height: 41px; padding: 6px 9px; }
+    .manifest-item dd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .manifest-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .manifest-item:nth-child(2n) { border-right: 1px solid var(--border); }
+    .manifest-item:nth-child(3n) { border-right: 0; }
+    .manifest-item:nth-last-child(-n+3) { border-bottom: 0; }
+    .risk-row { min-height: 60px; }
+    .agent { grid-template-rows: 76px 136px 455px 190px 87px; }
+    .agent-head strong { font-size: 14px; }
+    .agent-head small, .r0-badge, .context-id, .context-meta span, .timeline-label, .node-type, .node-time, .timeline p, .tool-call, .audit-head span, .audit-grid dt, .audit-grid dd, .agent-foot { font-size: 12px; line-height: 15px; }
+    .r0-badge, .context-meta span { min-height: 24px; display: inline-flex; align-items: center; }
+    .agent-context { padding-block: 11px; }
+    .timeline-wrap { padding-top: 12px; }
+    .timeline { margin-top: 10px; }
+    .timeline li { min-height: 60px; padding-bottom: 6px; }
+    .tool-call { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .audit-panel { padding: 11px; }
+    .audit-grid { margin-top: 10px; }
+    .agent-foot { align-items: flex-start; padding-top: 12px; }
+  </style>
+</head>
+<body>
+  <main class="screen" aria-label="TickDeck S0-V Agent 筛选证据审阅界面">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9"></path><path d="M8 15V5"></path><path d="M12 20V11"></path><path d="M16 13V4"></path><path d="M20 18V8"></path></svg>
+        </span>
+        TickDeck
+      </div>
+      <div class="stage-title">
+        <span class="stage-chip">S0-V</span>
+        <span>S0-V 验证界面 · 仅只读筛选 + 受限 R0 Agent</span>
+      </div>
+      <div class="top-spacer"></div>
+      <div class="top-meta">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>实验记录未形成 Go / Stop 结论</span>
+        <span class="top-tag">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"></path></svg>
+          单一受信工作区
+        </span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="rail" aria-label="S0-V 当前可用范围">
+        <div class="rail-item active">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          验证任务
+        </div>
+        <div class="rail-item">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m7 16 4-5 4 3 5-7"></path></svg>
+          证据审阅
+        </div>
+        <div class="rail-rule"></div>
+        <div class="rail-item">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+          运行记录
+        </div>
+        <div class="rail-foot" aria-label="只读锁定">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="15" height="11" x="4.5" y="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+        </div>
+      </nav>
+
+      <section class="review" aria-label="筛选证据结果">
+        <header class="task-head">
+          <div class="task-main">
+            <div class="task-kicker">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v6"></path><path d="m8 7 4 4 4-4"></path><path d="M5 14h14"></path><path d="M7 14v7h10v-7"></path></svg>
+              FROZEN VALIDATION TASK · UJ-1 THESIS TEST
+            </div>
+            <h1>筛出估值不高、现金分红明确、趋势未破坏且流动性足够的 A 股</h1>
+            <div class="frozen">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="15" height="11" x="4.5" y="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+              已冻结于 2026-08-27 10:03:00 CST · 页面切换不会改变任务、oracle、数据快照或指标口径
+            </div>
+          </div>
+          <dl class="identity-grid">
+            <div><dt>TASK IDENTITY</dt><dd>TASK-SCR-A01@v2</dd></div>
+            <div><dt>ORACLE IDENTITY</dt><dd>ORACLE-A01@v3</dd></div>
+            <div><dt>PARTICIPANT</dt><dd>P-07 · TASK 1/2</dd></div>
+            <div><dt>RUN</dt><dd>RUN-S0V-20260827-014</dd></div>
+          </dl>
+        </header>
+
+        <div class="trust-strip" aria-label="单一合法真实数据路径的信任条">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"></path><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"></path></svg>
+          <span class="trust-strong">Gate 输入（需实证）：合法真实数据路径 1/1</span>
+          <span class="divider"></span>
+          <span class="mono">S0V-RDP-A01 · 匿名路径样例</span>
+          <span class="mono">数据 2026-08-27 14:45 CST</span>
+          <span class="pill warn"><span class="mini-dot"></span>延时 15m</span>
+          <span class="pill partial"><span class="mini-dot"></span>部分 · 仅 A 股日线 + 财务字段</span>
+          <span class="pill info"><span class="mini-dot"></span>UX 示例 · 非厂商支持声明</span>
+          <span class="trust-note">正式计时前须挂接可核验授权证据；此截图不计入 SM-00</span>
+        </div>
+
+        <div class="review-body">
+          <section class="panel criteria-panel" aria-label="确定性筛选条件">
+            <div class="criteria-summary">
+              <div class="section-label">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"></path><path d="M7 12h10"></path><path d="M10 18h4"></path></svg>
+                确定性条件树 · ALL
+              </div>
+              <strong>5 / 5</strong>
+              <p>全部条件必须为 true；任何空值直接排除，不补值、不放宽、不换源。</p>
+            </div>
+            <div>
+              <div class="logic-row"><span class="logic-index">01</span><span class="logic-expr">market ∈ {SSE, SZSE} ∧ type = stock ∧ active</span><span class="logic-source">instrument_master@2026-08-27</span><span class="logic-null">NULL → 排除</span></div>
+              <div class="logic-row"><span class="logic-index">02</span><span class="logic-expr">0 &lt; pe_ttm ≤ 12.00</span><span class="logic-source">fundamental.point_in_time</span><span class="logic-null">NULL → 排除</span></div>
+              <div class="logic-row"><span class="logic-index">03</span><span class="logic-expr">dividend_yield_ttm ≥ 3.00%</span><span class="logic-source">corporate_action.cash</span><span class="logic-null">NULL → 排除</span></div>
+              <div class="logic-row"><span class="logic-index">04</span><span class="logic-expr">close_adj &gt; SMA(close_adj, 20)</span><span class="logic-source">ohlcv.daily.forward_adj</span><span class="logic-null">WARMUP → 排除</span></div>
+              <div class="logic-row"><span class="logic-index">05</span><span class="logic-expr">AVG(amount, 20) ≥ 100,000,000 CNY</span><span class="logic-source">ohlcv.daily.amount</span><span class="logic-null">NULL → 排除</span></div>
+            </div>
+          </section>
+
+          <section class="oracle-alert" aria-label="Oracle 差异与人工校正">
+            <span class="alert-icon">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.7 2.4 17.4A2 2 0 0 0 4.1 20h15.8a2 2 0 0 0 1.7-2.6L13.7 3.7a2 2 0 0 0-3.4 0Z"></path></svg>
+            </span>
+            <div><strong>本次保留 1 个实质错误：首次条件树把“现金分红明确”映射为最近一次分红率</strong><p>Oracle 要求 TTM 现金分红率；P-07 完成 2 次人工修改后重跑。校正前结果已保留，不能从指标中抹去。</p></div>
+            <div class="alert-audit">DIFF: dividend_yield_last → dividend_yield_ttm<br>CORRECTION: 2 actions / 00:03:18</div>
+          </section>
+
+          <section class="panel evidence-panel" aria-labelledby="evidence-title">
+            <header class="panel-head">
+              <div><h2 id="evidence-title">候选证据 · 校正后确定性结果</h2><p>只显示由筛选工具计算的字段；Agent 解释不写入证据列。</p></div>
+              <div class="result-count"><strong>3</strong> 候选 · 0 候选同样有效</div>
+            </header>
+            <table class="evidence-table">
+              <colgroup><col style="width:18%"><col style="width:12%"><col style="width:14%"><col style="width:17%"><col style="width:17%"><col style="width:13%"><col style="width:9%"></colgroup>
+              <thead><tr><th>候选 / 快照</th><th>PE_TTM</th><th>TTM 现金分红率</th><th>趋势证据</th><th>20 日平均成交额</th><th>风险 / 未知项</th><th>ORACLE</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><div class="candidate"><span class="market-glyph">SH</span><span><strong>浦发银行</strong><span>600000 · 14:45 CST</span></span></div></td>
+                  <td><span class="value">7.02</span><span class="proof pass">✓ 0 &lt; 7.02 ≤ 12</span></td>
+                  <td><span class="value">3.86%</span><span class="proof pass">✓ ≥ 3.00%</span></td>
+                  <td><span class="value">10.42 &gt; 10.36</span><span class="proof">close_adj / MA20</span></td>
+                  <td><span class="value">2.43B CNY</span><span class="proof pass">✓ ≥ 100M</span></td>
+                  <td><span class="unknown">资讯字段不可用</span><span class="proof">未参与条件</span></td>
+                  <td><span class="evidence-status">● MATCH</span></td>
+                </tr>
+                <tr>
+                  <td><div class="candidate"><span class="market-glyph">SH</span><span><strong>工商银行</strong><span>601398 · 14:45 CST</span></span></div></td>
+                  <td><span class="value">6.58</span><span class="proof pass">✓ 0 &lt; 6.58 ≤ 12</span></td>
+                  <td><span class="value">4.31%</span><span class="proof pass">✓ ≥ 3.00%</span></td>
+                  <td><span class="value">7.74 &gt; 7.63</span><span class="proof">close_adj / MA20</span></td>
+                  <td><span class="value">1.95B CNY</span><span class="proof pass">✓ ≥ 100M</span></td>
+                  <td><span class="unknown">延时行情</span><span class="proof">15 分钟</span></td>
+                  <td><span class="evidence-status">● MATCH</span></td>
+                </tr>
+                <tr>
+                  <td><div class="candidate"><span class="market-glyph">SH</span><span><strong>招商银行</strong><span>600036 · 14:45 CST</span></span></div></td>
+                  <td><span class="value">8.04</span><span class="proof pass">✓ 0 &lt; 8.04 ≤ 12</span></td>
+                  <td><span class="value">4.03%</span><span class="proof pass">✓ ≥ 3.00%</span></td>
+                  <td><span class="value">46.10 &gt; 45.72</span><span class="proof">close_adj / MA20</span></td>
+                  <td><span class="value">3.17B CNY</span><span class="proof pass">✓ ≥ 100M</span></td>
+                  <td><span class="unknown">港股不在本轮</span><span class="proof">切片边界</span></td>
+                  <td><span class="evidence-status">● MATCH</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="table-foot">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+              <span><strong>安全空集契约：</strong>若没有标的同时满足 5 项条件，返回“0 候选”；不猜测、不补值、不降低阈值，也不自动切换数据源。</span>
+              <span class="near-miss" title="NEAR-MISS 601939 · close 9.18 ≤ MA20 9.22 · 已排除" aria-label="近似匹配 601939：收盘价 9.18 小于等于 MA20 的 9.22，已排除">NEAR-MISS 601939 · close 9.18 ≤ MA20 9.22 · 已排除</span>
+            </div>
+          </section>
+
+          <div class="bottom-grid">
+            <section class="panel metrics-panel" aria-labelledby="metrics-title">
+              <header class="metrics-title" id="metrics-title">固定任务对照观察 · Agent-on vs 同一参与者现有工具链<span class="not-verdict">n = 1 个任务观察 · 不是 Go/Stop 结论</span></header>
+              <div class="metrics-grid">
+                <div class="metric"><span class="metric-label">端到端任务时间</span><span class="metric-value">12:51</span><span class="metric-note">基线 18:42 · 单例 −31.3%</span></div>
+                <div class="metric"><span class="metric-label">实质错误</span><span class="metric-value bad">1</span><span class="metric-note">基线 0 · 本次更差</span></div>
+                <div class="metric"><span class="metric-label">实质遗漏</span><span class="metric-value">0</span><span class="metric-note">基线 1 · 待盲审</span></div>
+                <div class="metric"><span class="metric-label">人工修正</span><span class="metric-value">2 次 / 03:18</span><span class="metric-note">均已进入运行清单</span></div>
+                <div class="metric"><span class="metric-label">证据核查成本</span><span class="metric-value">07 项 / 06:24</span><span class="metric-note">逐字段核对 + oracle diff</span></div>
+                <div class="metric"><span class="metric-label">第二任务复用</span><span class="metric-value pending">待观察</span><span class="metric-note">D+14 窗口至 2026-09-10</span></div>
+              </div>
+              <div class="metric-foot"><strong>SM-00 仍需：</strong>&nbsp;≥12 名合格 alpha 用户、每人 ≥2 个同类真实任务，并同时通过时间、错误/遗漏、二次复用和零违规门槛。</div>
+            </section>
+
+            <section class="panel manifest-panel" aria-labelledby="manifest-title">
+              <header class="manifest-head" id="manifest-title">运行清单 · 可复核输入<span>READ-ONLY · SEALED</span></header>
+              <dl class="manifest-body">
+                <div class="manifest-item"><dt>CONDITION TREE</dt><dd title="sha256:71d0…9a2c · v2 corrected">sha256:71d0…9a2c · v2 corrected</dd></div>
+                <div class="manifest-item"><dt>DATA SNAPSHOT</dt><dd title="sha256:8a9e…24fd · 14:45 CST">sha256:8a9e…24fd · 14:45 CST</dd></div>
+                <div class="manifest-item"><dt>SCREEN TOOL</dt><dd title="screen.readonly@0.2.1">screen.readonly@0.2.1</dd></div>
+                <div class="manifest-item"><dt>FILTER ENGINE</dt><dd title="filter-core@0.4.0">filter-core@0.4.0</dd></div>
+                <div class="manifest-item"><dt>ORACLE</dt><dd title="ORACLE-A01@v3 · sha256:33be…c119">ORACLE-A01@v3 · sha256:33be…c119</dd></div>
+                <div class="manifest-item"><dt>MODEL PROFILE</dt><dd title="r0-eval-profile@2026-08 · constrained">r0-eval-profile@2026-08 · constrained</dd></div>
+              </dl>
+              <div class="risk-row">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.7 2.4 17.4A2 2 0 0 0 4.1 20h15.8a2 2 0 0 0 1.7-2.6L13.7 3.7a2 2 0 0 0-3.4 0Z"></path></svg>
+                <span><strong>风险 / 未知：</strong> 当前路径身份、行情值与授权字段为匿名 UX 示例；正式实验必须替换为真实授权证据。仅覆盖 A 股，不能推断港股资格；单次结果不能关闭 A-01。</span>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <aside class="agent" aria-label="受限 R0 Agent 运行审计">
+        <header class="agent-head">
+          <span class="agent-icon">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3-1.9 5.1L5 10l5.1 1.9L12 17l1.9-5.1L19 10l-5.1-1.9L12 3Z"></path><path d="M5 3v4"></path><path d="M3 5h4"></path></svg>
+          </span>
+          <span><strong>受限 Agent 运行</strong><small>RUN-S0V-20260827-014</small></span>
+          <span class="r0-badge">R0 · READ ONLY</span>
+        </header>
+
+        <section class="agent-context" aria-label="冻结的验证上下文">
+          <div class="agent-context-title">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="15" height="11" x="4.5" y="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+            冻结验证上下文
+          </div>
+          <div class="context-id">TASK-SCR-A01@v2 ↔ ORACLE-A01@v3</div>
+          <div class="context-meta"><span>1 DATA PATH</span><span>A-SHARES ONLY</span><span>NO SIDE EFFECTS</span><span>NO EGRESS</span></div>
+        </section>
+
+        <section class="timeline-wrap" aria-labelledby="timeline-title">
+          <div class="timeline-label" id="timeline-title">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16"></path><path d="M4 8h7"></path><path d="M4 16h11"></path><circle cx="14" cy="8" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+            分层运行时间线 · 不展示模型思维链
+          </div>
+          <ol class="timeline">
+            <li>
+              <div class="node-top"><span class="node-type">PLAN</span><span class="node-time">10:03:01</span></div>
+              <strong>确认固定任务与只读边界</strong>
+              <p>3 个公开步骤：检查能力 → 规范化条件 → 确定性筛选与证据打包。</p>
+            </li>
+            <li class="tool">
+              <div class="node-top"><span class="node-type">TOOL · R0</span><span class="node-time">10:03:03</span></div>
+              <strong>检查单一数据路径能力</strong>
+              <div class="tool-call" title="capability.inspect({ path: S0V-RDP-A01 }) → PARTIAL" aria-label="工具调用 capability.inspect，路径 S0V-RDP-A01，结果 PARTIAL">capability.inspect({ path: "S0V-RDP-A01" }) → PARTIAL</div>
+            </li>
+            <li class="tool">
+              <div class="node-top"><span class="node-type">TOOL · R0</span><span class="node-time">10:03:05</span></div>
+              <strong>生成并执行规范化条件树</strong>
+              <div class="tool-call" title="screen.readonly({ tree: 71d0…b531, snapshot: 8a9e…24fd })" aria-label="只读筛选工具调用，条件树 71d0…b531，快照 8a9e…24fd">screen.readonly({ tree: "71d0…b531", snapshot: "8a9e…24fd" })</div>
+            </li>
+            <li class="issue">
+              <div class="node-top"><span class="node-type">ORACLE DIFF</span><span class="node-time">10:09:27</span></div>
+              <strong>股息率口径不一致 · 人工校正</strong>
+              <p>最近一次分红率不是 TTM 现金分红率；记录 1 个实质错误、2 次修改。</p>
+            </li>
+            <li class="tool">
+              <div class="node-top"><span class="node-type">TOOL · R0</span><span class="node-time">10:10:14</span></div>
+              <strong>以冻结快照重跑筛选</strong>
+              <div class="tool-call" title="screen.readonly({ tree: 71d0…9a2c, snapshot: 8a9e…24fd })" aria-label="只读筛选重跑，条件树 71d0…9a2c，快照 8a9e…24fd">screen.readonly({ tree: "71d0…9a2c", snapshot: "8a9e…24fd" })</div>
+            </li>
+            <li class="result">
+              <div class="node-top"><span class="node-type">RESULT</span><span class="node-time">10:15:51</span></div>
+              <strong>3 候选 · 1 近似匹配被排除</strong>
+              <p>结果、排除原因、未知项、人工校正与证据核查耗时均已封存。</p>
+            </li>
+          </ol>
+        </section>
+
+        <section class="audit-panel" aria-label="R0 审计摘要">
+          <div class="audit-head">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"></path><path d="m9 12 2 2 4-4"></path></svg>
+            R0 审计摘要 <span>APPEND-ONLY</span>
+          </div>
+          <dl class="audit-grid">
+            <div><dt>工具调用</dt><dd>4 · 全部只读</dd></div>
+            <div><dt>人工校正</dt><dd>2 · 已留痕</dd></div>
+            <div><dt>持久化副作用</dt><dd class="zero">0</dd></div>
+            <div><dt>外部发送</dt><dd class="zero">0</dd></div>
+            <div><dt>自动换源</dt><dd class="zero">0</dd></div>
+            <div><dt>预算外调用</dt><dd class="zero">0</dd></div>
+          </dl>
+        </section>
+
+        <footer class="agent-foot">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+          <span><strong>R0 不是“正确”标签。</strong> 它只表示本次工具调用无副作用；语义错误仍必须由 oracle 与人工证据核查发现。</span>
+        </footer>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

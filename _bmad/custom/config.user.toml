@@ -1,0 +1,3 @@
+# Repository-tracked overrides for _bmad/config.toml.
+# Keep secrets and machine-local paths out of this file.
+# Wins over both base config and team overrides.
