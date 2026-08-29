@@ -79,6 +79,8 @@ pnpm 默认 24 小时 release-age 策略保持启用；经用户精确授权，�
 
 无 PR 交付仍保留五项线上 checks：Husky 当前仅有 `pre-commit` 与 `commit-msg`，lint-staged 只覆盖暂存文件，不能替代远端全仓、不可绕过的验证。workflow 的 push 触发范围机械锁定为 `main` 与 `codex/**`；提交先在受控分支取得五项成功状态，再以同一 SHA 更新 `main`。
 
+根级 TypeScript build 使用 `--workspace-concurrency=1` 串行调度叶包；叶包仍执行真实 `tsc -b --force`，但不会再并发重写共享 project-reference 产物。workspace validator 精确锁定该命令，防止恢复会间歇产生 `TS2306` 的并行写竞争。
+
 ## Verification
 
 **Commands:**

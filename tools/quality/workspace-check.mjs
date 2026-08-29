@@ -115,7 +115,6 @@ const recursiveCommand =
 for (const [rootScript, leafScript] of [
   ['typecheck:ts', 'typecheck'],
   ['codegen:check', 'codegen:check'],
-  ['build:ts', 'build'],
   ['test:unit', 'test:unit'],
 ]) {
   assert(
@@ -123,6 +122,12 @@ for (const [rootScript, leafScript] of [
     `${rootScript} 必须调度完整 recursive leaf contract；--if-present 仅由本 validator 保护`,
   );
 }
+const serialBuildCommand =
+  'pnpm run workspace:check && pnpm --workspace-concurrency=1 --filter "./apps/*" --filter "./packages/*" --filter "./tools/*" --fail-if-no-match --recursive --if-present run build';
+assert(
+  rootManifest.scripts?.['build:ts'] === serialBuildCommand,
+  'build:ts 必须单并发调度完整 leaf contract，禁止共享 project-reference 并行写入',
+);
 
 for (const section of ['dependencies', 'devDependencies']) {
   for (const [name, version] of Object.entries(rootManifest[section] ?? {})) {

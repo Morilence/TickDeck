@@ -25,7 +25,7 @@
     "typecheck:all": "pnpm run typecheck:ts && pnpm run typecheck:rust",
     "typecheck": "node tools/quality/run-warning-free.mjs -- pnpm run typecheck:all",
     "codegen:check": "pnpm run workspace:check && pnpm --filter \"./apps/*\" --filter \"./packages/*\" --filter \"./tools/*\" --fail-if-no-match --recursive --if-present run codegen:check && node tools/quality/generated-check.mjs",
-    "build:ts": "pnpm run workspace:check && pnpm --filter \"./apps/*\" --filter \"./packages/*\" --filter \"./tools/*\" --fail-if-no-match --recursive --if-present run build",
+    "build:ts": "pnpm run workspace:check && pnpm --workspace-concurrency=1 --filter \"./apps/*\" --filter \"./packages/*\" --filter \"./tools/*\" --fail-if-no-match --recursive --if-present run build",
     "build:rust": "cargo build --workspace --all-targets --all-features --locked",
     "build:all": "pnpm run codegen:check && pnpm run build:ts && pnpm run build:rust && node tools/quality/build-projection-check.mjs",
     "build": "node tools/quality/run-warning-free.mjs -- pnpm run build:all",
